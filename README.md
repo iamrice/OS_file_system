@@ -1,6 +1,6 @@
 # OS_file_system
 
-<div align='center' >
+<div align='left' >
 <img src="https://img.shields.io/github/license/iamrice/OS_file_system.svg"/>
 <img  src="https://img.shields.io/github/last-commit/iamrice/OS_file_system.svg"/>
 <img src="https://img.shields.io/badge/language-c++-\#F34B7D.svg"/>
@@ -26,10 +26,13 @@ limitations under the License.
 
 ## Usage
 
-on the terminal: 
+1. 将项目拉取到本地
+2. 编译，执行
 
 ```
-g++ *.h *.cpp -o file_system.exe
+mingw32-make //on windows
+make //on linux
+
 ./file_system.exe
 ```
 
