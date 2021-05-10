@@ -8,7 +8,7 @@ public:
 	/***************
 	requirement 1:
 		a. 构造函数调用时：
-			输出welcome语句，声明copyright
+			输出welcome语句，声明copyright，输出组员的姓名和学号
 			读取16MB的大文件内容，从根结点开始解析文件系统
 		b. 解构函数调用时，将文件系统的inode部分转为字符串存入文件中
 	***************/
