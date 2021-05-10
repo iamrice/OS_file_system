@@ -33,6 +33,6 @@ limitations under the License.
 mingw32-make //on windows
 make //on linux
 
-./file_system.exe
+file_system.exe
 ```
 

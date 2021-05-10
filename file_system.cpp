@@ -2,11 +2,7 @@
 #include <iostream>
 using namespace std;
 
-file_system::file_system(){
-	cout<<"operating system project 1.0.0"<<endl;
-	cout<<"type 'help', 'copyright' for more information."<<endl;
-	return;
-}
+file_system::file_system(){}
 
 file_system::~file_system(){}
 
