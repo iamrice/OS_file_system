@@ -2,11 +2,39 @@
 #define INODE_H
 #include <string>
 
+struct fileNode
+{
+	unsigned short nodeAddr;//2B
+	char name[30];//30B
+};
+
+struct rootNode
+{
+	/*
+    unsigned short blockSize;//2B,文件块大小
+    unsigned short blockNum;//2B,文件块数量
+    unsigned short blockFree;//2B,空闲块数量*/
+    unsigned short blockBitMap;//2B,bitmap 位置
+    unsigned short rootINode;//2B 第一个inode的位置
+};
+
+struct inode
+{
+	unsigned short addr;			//2B
+	unsigned short parentAddr;		//2B
+	unsigned short size;			//2B
+	unsigned char isDirection;		//1B
+	unsigned short indirectBlock;	//2B
+	time_t lastModify;				//8B
+	time_t createTime;				//8B
+	unsigned short directBlock[10]={0};	//20B
+};
+
 class file_system
 {
 public:
 	/***************
-	requirement 1:
+	constructor:
 		a. 构造函数调用时：
 			输出welcome语句，声明copyright，输出组员的姓名和学号
 			读取16MB的大文件内容，从根结点开始解析文件系统
@@ -14,18 +42,6 @@ public:
 	***************/
 	file_system();
 	~file_system();
-
-private:
-
-	/***************
-	requirement 2:
-		a. 维护空闲块,可选用的方法有bitmap、空闲链表法、空闲表法
-		b. 在申请空间时查找空闲块，返回地址并标记为已占用
-		c. 在释放空间时将块标记为空闲
-	***************/
-	bool free_block[2>>14];
-	int applyBlock();
-	void releaseBlock(int);
 
 	/******************
 	createFile:
@@ -73,5 +89,33 @@ private:
 	void copy(std::string,std::string);
 	void cat(std::string);
 	void sum();
+
+private:
+
+	bool blockBitMap[2>>14];
+
+	/***************
+	loadBitMap\dumpBitMap:
+		a. 从addr位置开始，读取 64 个block的信息，将bitmap 转为 bool 数组
+		b. 将 bool 数组转为bitmap存入文件。
+	applyBlock\releaseBlock:
+		a. 维护空闲块,可选用的方法有bitmap、空闲链表法、空闲表法
+		b. 在申请空间时查找空闲块，返回地址并标记为已占用
+		c. 在释放空间时将块标记为空闲
+	***************/
+	void loadBitMap(unsigned short addr);
+	void dumpBitMap(unsigned short addr);
+	int applyBlock();
+	void releaseBlock(unsigned short addr);
+
+
+	/***************
+	getINode: 根据地址在文件中读取内容，转为inode结构
+	updateINode：将INode重新写入文件
+	releaseINode：删除INode
+	***************/
+	void getINode(inode* node,unsigned short addr);
+	void updateINode(inode* node);
+	void releaseINode(unsigned short addr);
 };
 #endif

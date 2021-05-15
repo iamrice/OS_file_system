@@ -14,15 +14,17 @@ inode:
 
 class inode{
 public:
-	int size;				
-	int lastModify;			
-	int createTime;			
-	bool isDirection;		
-	int directBlock[10];	
-	int indirectBlock;
-	bool read;
+	unsigned short addr;			//
+	unsigned short parentAddr;		//2B
+	unsigned short size;			//2B
+	unsigned char isDirection;		//1B
+	unsigned short indirectBlock;	//2B
+	time_t lastModify;				//8B
+	time_t createTime;				//8B
+	unsigned short directBlock[10]={0};	//20B
+	/*bool read;
 	bool write;
-	bool execute;
+	bool execute;*/
 	inode();				
 	inode(std::string);	
 	std::string dump();
