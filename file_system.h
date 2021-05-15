@@ -1,6 +1,7 @@
 #ifndef INODE_H
 #define INODE_H
 #include <string>
+#include <list>
 
 struct fileNode
 {
@@ -39,14 +40,9 @@ public:
 			输出welcome语句，声明copyright，输出组员的姓名和学号
 			读取16MB的大文件内容，从根结点开始解析文件系统
 		b. 解构函数调用时，将文件系统的inode部分转为字符串存入文件中
-	createFileSystem: 当系统第一次运行时调用，创建16MB 的文件，并初始化bitmap
-	openFileSystem: 当系统文件已存在时调用，载入系统内容。
 	***************/
 	file_system();
 	~file_system();
-
-    void createFileSystem();
-    void openFileSystem();
 
 	/******************
 	createFile:
@@ -96,9 +92,14 @@ public:
 	void sum();
 
 private:
+	/***************
+	createFileSystem: 当系统第一次运行时调用，创建16MB 的文件，并初始化bitmap
+	openFileSystem: 当系统文件已存在时调用，载入系统内容。
+	***************/
+    void createFileSystem();
+    void openFileSystem();
 
 	bool blockBitMap[2>>14];
-
 	/***************
 	loadBitMap\dumpBitMap:
 		a. 从addr位置开始，读取 64 个block的信息，将bitmap 转为 bool 数组
@@ -113,7 +114,6 @@ private:
 	int applyBlock();
 	void releaseBlock(unsigned short addr);
 
-
 	/***************
 	getINode: 根据地址在文件中读取内容，转为inode结构
 	updateINode：将INode重新写入文件
@@ -122,5 +122,10 @@ private:
 	void getINode(inode* node,unsigned short addr);
 	void updateINode(inode* node);
 	void releaseINode(unsigned short addr);
+
+	/***************
+	loadDir: 给定一个目录，inode，根据size去读取目录内容，整理成list。
+	***************/
+	void loadDir(inode* dirNode,std::list<fileNode>* list);
 };
 #endif
