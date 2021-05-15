@@ -39,9 +39,14 @@ public:
 			输出welcome语句，声明copyright，输出组员的姓名和学号
 			读取16MB的大文件内容，从根结点开始解析文件系统
 		b. 解构函数调用时，将文件系统的inode部分转为字符串存入文件中
+	createFileSystem: 当系统第一次运行时调用，创建16MB 的文件，并初始化bitmap
+	openFileSystem: 当系统文件已存在时调用，载入系统内容。
 	***************/
 	file_system();
 	~file_system();
+
+    void createFileSystem();
+    void openFileSystem();
 
 	/******************
 	createFile:
