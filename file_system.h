@@ -1,5 +1,5 @@
-#ifndef INODE_H
-#define INODE_H
+#ifndef FILE_SYSTEM_H
+#define FILE_SYSTEM_H
 #include <string>
 #include <list>
 
@@ -93,13 +93,12 @@ public:
 
 private:
 	/***************
-	createFileSystem: 当系统第一次运行时调用，创建16MB 的文件，并初始化bitmap
+	createFileSystem: 当系统第一次运行时调用，创建16MB 的文件，并初始化bitmap和根目录结点
 	openFileSystem: 当系统文件已存在时调用，载入系统内容。
 	***************/
     void createFileSystem();
     void openFileSystem();
 
-	bool blockBitMap[2>>14];
 	/***************
 	loadBitMap\dumpBitMap:
 		a. 从addr位置开始，读取 64 个block的信息，将bitmap 转为 bool 数组
