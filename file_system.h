@@ -9,26 +9,29 @@ struct fileNode
 	char name[30];//30B
 };
 
-struct rootNode
+struct sysNode
 {
-	/*
-    unsigned short blockSize;//2B,文件块大小
-    unsigned short blockNum;//2B,文件块数量
-    unsigned short blockFree;//2B,空闲块数量*/
-    unsigned short blockBitMap;//2B,bitmap 位置
+	unsigned short inodeBitMap;//2B,地址单位是字节
+    unsigned short blockBitMap;//2B,bitmap 位置，地址单位是字节
     unsigned short rootINode;//2B 第一个inode的位置
+};
+
+struct inodeBitMap
+{
+	unsigned short addr;	//2B
+	char bitmap[3];			//3B
 };
 
 struct inode
 {
-	unsigned short addr;			//2B
+	unsigned short addr;			//2B，记录当前位置
 	unsigned short parentAddr;		//2B
 	unsigned short size;			//2B
 	unsigned char isDirection;		//1B
-	unsigned short indirectBlock;	//2B
 	time_t lastModify;				//8B
 	time_t createTime;				//8B
 	unsigned short directBlock[10]={0};	//20B
+	unsigned short indirectBlock = 0;	//2B
 };
 
 class file_system
@@ -92,8 +95,12 @@ public:
 	void sum();
 
 private:
+	int blockSize = 1024;
+	int inode_in_block = 23;
+	char sysFile[9] = "./system";
+	sysNode sys_node;
 	/***************
-	createFileSystem: 当系统第一次运行时调用，创建16MB 的文件，并初始化bitmap和根目录结点
+	createFileSystem: 当系统第一次运行时调用，创建16MB 的文件，并初始化bitmap和根目录结点，初始化第一个inodebitmap
 	openFileSystem: 当系统文件已存在时调用，载入系统内容。
 	***************/
     void createFileSystem();
@@ -108,9 +115,10 @@ private:
 		b. 在申请空间时查找空闲块，返回地址并标记为已占用
 		c. 在释放空间时将块标记为空闲
 	***************/
+	void setBitMap(unsigned short addr,int offset, bool bit);
 	void loadBitMap(unsigned short addr);
 	void dumpBitMap(unsigned short addr);
-	int applyBlock();
+	unsigned short applyBlock();
 	void releaseBlock(unsigned short addr);
 
 	/***************
@@ -118,8 +126,9 @@ private:
 	updateINode：将INode重新写入文件
 	releaseINode：删除INode
 	***************/
-	void getINode(inode* node,unsigned short addr);
-	void updateINode(inode* node);
+	unsigned short applyINode();
+	inode getINode(unsigned short addr);
+	void updateINode(inode node);
 	void releaseINode(unsigned short addr);
 
 	/***************
