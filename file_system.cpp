@@ -8,6 +8,14 @@ file_system::file_system(){
 	cout<<"MiniOS file system 1.0.0 developed by 陈泰佑(201830570057),韦泽晟(),邱颖()"<<endl;
 	cout<<"Copyright (c) 2021 Taiyou Chen, Zesheng Wei and Ying Qiu. All rights reserved."<<endl;
 	cout<<"Type \"help\" or \"lisence\" for more informations"<<endl;
+	FILE *fp = fopen(this->sysFile, "r");
+	if (fp) {
+		fclose(fp);
+		openFileSystem();
+	}
+	else {
+		createFileSystem();
+	}
 }
 
 file_system::~file_system(){}
@@ -61,11 +69,9 @@ void file_system::setBitMap(unsigned short addr,int offset, bool bit) {
 
 }
 
-void file_system::loadBitMap(unsigned short addr){}
-
-void file_system::dumpBitMap(unsigned short addr){}
-
-unsigned short file_system::applyBlock(){}
+unsigned short file_system::applyBlock(){
+	
+}
 
 void file_system::releaseBlock(unsigned short addr){}
 

@@ -116,8 +116,10 @@ private:
 		c. 在释放空间时将块标记为空闲
 	***************/
 	void setBitMap(unsigned short addr,int offset, bool bit);
+	/*
 	void loadBitMap(unsigned short addr);
 	void dumpBitMap(unsigned short addr);
+	*/
 	unsigned short applyBlock();
 	void releaseBlock(unsigned short addr);
 
