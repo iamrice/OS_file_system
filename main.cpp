@@ -4,6 +4,8 @@ using namespace std;
 
 int main(){
 	file_system system;
+	system.test();
+	/*
 	string str;
 	cout<<">>>";
 	while(true){
@@ -16,8 +18,8 @@ int main(){
 			c. 如果参数数量不足，则缓存已有参数，输出"...",等待用户继续输入；
 			d. 如果参数数量过多，则报错。
 			e. 如果指令是help，则输出所有指令以及其作用
-		****************/
+		***************
 		cout<<str<<endl;
 		cout<<">>>";
-	}
+	}*/
 }		

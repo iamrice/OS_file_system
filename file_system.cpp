@@ -1,58 +1,75 @@
+#define _CRT_SECURE_NO_WARNINGS
 #include "file_system.h"
 #include <fstream>
 #include <iostream>
 #include <time.h>
+
 using namespace std;
 
 file_system::file_system(){
-	cout<<"MiniOS file system 1.0.0 developed by 陈泰佑(201830570057),韦泽晟(),邱颖()"<<endl;
+	cout<<"MiniOS file system 1.0.0"<<endl;
 	cout<<"Copyright (c) 2021 Taiyou Chen, Zesheng Wei and Ying Qiu. All rights reserved."<<endl;
 	cout<<"Type \"help\" or \"lisence\" for more informations"<<endl;
-	FILE *fp = fopen(this->sysFile, "r");
+	sysFile = "./system";
+	/*fp=fopen(this->sysFile, "r");
 	if (fp) {
 		fclose(fp);
 		openFileSystem();
 	}
 	else {
 		createFileSystem();
-	}
+	}*/
+	createFileSystem();
 }
 
 file_system::~file_system(){}
 
 void file_system::createFileSystem(){
-	FILE *fp=fopen(this->sysFile,"w");
-	fseek(fp,1024*1024*16-1,SEEK_SET);
+	fp = fopen(this->sysFile, "w");
+	fseek(fp,1024*16-1,SEEK_SET);
 	char end=EOF;
-	fwrite(&end,1,1,fp);	
+	fwrite(&end,1,1,fp);
+	fclose(fp);
 	
 	sys_node.blockBitMap = 6;
-	sys_node.inodeBitMap = 70;
-	sys_node.rootINode = applyINode();
-	fseek(fp, 0, SEEK_SET);
-	fwrite(&sys_node, sizeof(sys_node), 1, fp);
 
+	//前四个block为系统空间
+	setBitMap(6, 0, true);
+	setBitMap(6, 1, true);
+	setBitMap(6, 2, true);
+	setBitMap(6, 3, true);
+
+	sys_node.inodeBitMap = 70;
+
+	cout<<"flag1"<<endl;
 	inode root;
-	root.addr = sys_node.rootINode;
-	root.parentAddr = sys_node.rootINode;
+	root.addr = applyINode();
+	root.parentAddr = root.addr;
 	root.isDirection = true;
 	root.size = 0;
 	time(&root.createTime);
 	time(&root.lastModify);
 	updateINode(root);
 
+	sys_node.rootINode = root.addr;
+
+	fp = fopen(this->sysFile, "w");
+	fseek(fp, 0, SEEK_SET);
+	fwrite(&sys_node, sizeof(sys_node), 1, fp);
 	fclose(fp);
+
+
 }
 
 void file_system::openFileSystem(){
-	FILE *fp = fopen(this->sysFile, "r+");
+	fp = fopen(this->sysFile, "r+");
 	fseek(fp, 0, SEEK_SET);
 	fread(&sys_node, sizeof(sys_node), 1, fp);
 	fclose(fp);
 }
 
 void file_system::setBitMap(unsigned short addr,int offset, bool bit) {
-	FILE *fp = fopen(this->sysFile, "r+");
+	fp = fopen(this->sysFile, "r+");
 	fseek(fp, addr, SEEK_SET);
 	unsigned char word;
 	fread(&word, sizeof(word), 1, fp);
@@ -66,18 +83,23 @@ void file_system::setBitMap(unsigned short addr,int offset, bool bit) {
 	fseek(fp, addr, SEEK_SET);
 	fwrite(&word, sizeof(word), 1, fp);
 	fclose(fp);
-
 }
 
 unsigned short file_system::applyBlock(){
-	
+	return 4;
 }
 
-void file_system::releaseBlock(unsigned short addr){}
+void file_system::releaseBlock(unsigned short blockIndex){
+	int addr, offset;
+	addr = 6 + blockIndex / 8;
+	offset = blockIndex % 8;
+	setBitMap(addr, offset, true);
+}
 
 unsigned short file_system::applyINode() {
+	cout<<"flag2"<<endl;
 	int offset = this->sys_node.inodeBitMap;
-	FILE *fp = fopen(this->sysFile, "r+");
+	fp = fopen(this->sysFile, "r+");
 	inodeBitMap node;
 	int nodeIndex=0;
 	while (true) {
@@ -90,9 +112,11 @@ unsigned short file_system::applyINode() {
 			node.bitmap[0] = 128;
 			fseek(fp, offset, SEEK_SET);
 			fwrite(&node, sizeof(node), 1, fp);
+			cout<<"new INode block "<<node.addr<<" "<<node.bitmap[0]<<node.bitmap[1]<<node.bitmap[2]<<endl;
 			goto success;
 		}
 		else {
+			cout<<"exist INode block "<<node.addr<<" "<<node.bitmap<<endl;
 			for (int t = 0; t < inode_in_block; t++) {
 				int i = t / 8;
 				int j = t % 8;
@@ -111,11 +135,12 @@ unsigned short file_system::applyINode() {
 	}
 success:
 	fclose(fp);
+	cout<<"applyINode "<<nodeIndex<<" "<<offset;
 	return nodeIndex;
 }
 
 inode file_system::getINode(unsigned short addr){
-	FILE *fp = fopen(this->sysFile, "r+");
+	fp = fopen(this->sysFile, "r+");
 	inodeBitMap map;
 	int offset = this->sys_node.inodeBitMap + (addr / inode_in_block) * 5;
 	fseek(fp, offset, SEEK_SET);
@@ -132,7 +157,7 @@ inode file_system::getINode(unsigned short addr){
 }
 
 void file_system::updateINode(inode node){
-	FILE *fp = fopen(this->sysFile, "r+");
+	fp = fopen(this->sysFile, "r+");
 	inodeBitMap map;
 	int offset = this->sys_node.inodeBitMap + (node.addr/inode_in_block)*5;
 	fseek(fp, offset, SEEK_SET);
@@ -152,3 +177,7 @@ void file_system::releaseINode(unsigned short addr){
 }
 
 void file_system::loadDir(inode* dirNode,list<fileNode>* list){}
+
+void file_system::test() {
+
+}

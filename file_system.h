@@ -1,6 +1,7 @@
 #ifndef FILE_SYSTEM_H
 #define FILE_SYSTEM_H
 #include <string>
+#include <string.h>
 #include <list>
 
 struct fileNode
@@ -94,11 +95,14 @@ public:
 	void cat(std::string);
 	void sum();
 
+	void test();
+
 private:
 	int blockSize = 1024;
 	int inode_in_block = 23;
-	char sysFile[9] = "./system";
-	sysNode sys_node;
+	const char* sysFile;
+	sysNode sys_node; 
+	FILE *fp;
 	/***************
 	createFileSystem: 当系统第一次运行时调用，创建16MB 的文件，并初始化bitmap和根目录结点，初始化第一个inodebitmap
 	openFileSystem: 当系统文件已存在时调用，载入系统内容。
@@ -137,5 +141,6 @@ private:
 	loadDir: 给定一个目录，inode，根据size去读取目录内容，整理成list。
 	***************/
 	void loadDir(inode* dirNode,std::list<fileNode>* list);
+
 };
 #endif
