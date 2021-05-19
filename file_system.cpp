@@ -1,50 +1,73 @@
+#define _CRT_SECURE_NO_WARNINGS
 #include "file_system.h"
 #include <fstream>
 #include <iostream>
-#include <time.h>
+#include <iomanip>
+
 using namespace std;
 
 file_system::file_system(){
-	cout<<"MiniOS file system 1.0.0 developed by 陈泰佑(201830570057),韦泽晟(),邱颖()"<<endl;
+	cout<<"MiniOS file system 1.0.0"<<endl;
 	cout<<"Copyright (c) 2021 Taiyou Chen, Zesheng Wei and Ying Qiu. All rights reserved."<<endl;
 	cout<<"Type \"help\" or \"lisence\" for more informations"<<endl;
+	sysFile = "./system";
+
+	fp=fopen(this->sysFile, "r");
+	if (fp) {
+		fclose(fp);
+		openFileSystem();
+	}
+	else {
+		createFileSystem();
+	}
 }
 
 file_system::~file_system(){}
 
 void file_system::createFileSystem(){
-	FILE *fp=fopen(this->sysFile,"w");
-	fseek(fp,1024*1024*16-1,SEEK_SET);
+	fp = fopen(this->sysFile, "w");
+	fseek(fp,1024*16-1,SEEK_SET);
 	char end=EOF;
-	fwrite(&end,1,1,fp);	
+	fwrite(&end,1,1,fp);
+	fclose(fp);
 	
-	sys_node.blockBitMap = 6;
-	sys_node.inodeBitMap = 70;
-	sys_node.rootINode = applyINode();
-	fseek(fp, 0, SEEK_SET);
-	fwrite(&sys_node, sizeof(sys_node), 1, fp);
+	sys_node.blockBitMap = sizeof(sysNode);
+
+	//前7个block为系统空间
+	setBitMap(6, 0, true);
+	setBitMap(6, 1, true);
+	setBitMap(6, 2, true);
+	setBitMap(6, 3, true);
+	setBitMap(6, 4, true);
+	setBitMap(6, 5, true);
+	setBitMap(6, 6, true);
+
+	sys_node.inodeBitMap = sizeof(sysNode)+ block_bitmap_size;
 
 	inode root;
-	root.addr = sys_node.rootINode;
-	root.parentAddr = sys_node.rootINode;
+	root.addr = applyINode();
+	root.parentAddr = root.addr;
 	root.isDirection = true;
 	root.size = 0;
-	time(&root.createTime);
-	time(&root.lastModify);
 	updateINode(root);
+	cout<<root.to_string();
+	sys_node.rootINode = root.addr;
 
+	fp = fopen(this->sysFile, "r+");
+	fseek(fp, 0, SEEK_SET);
+	fwrite(&sys_node, sizeof(sys_node), 1, fp);
 	fclose(fp);
 }
 
 void file_system::openFileSystem(){
-	FILE *fp = fopen(this->sysFile, "r+");
+	fp = fopen(this->sysFile, "r+");
 	fseek(fp, 0, SEEK_SET);
 	fread(&sys_node, sizeof(sys_node), 1, fp);
 	fclose(fp);
 }
 
 void file_system::setBitMap(unsigned short addr,int offset, bool bit) {
-	FILE *fp = fopen(this->sysFile, "r+");
+	fp = fopen(this->sysFile, "r+");
 	fseek(fp, addr, SEEK_SET);
 	unsigned char word;
 	fread(&word, sizeof(word), 1, fp);
@@ -58,20 +81,18 @@ void file_system::setBitMap(unsigned short addr,int offset, bool bit) {
 	fseek(fp, addr, SEEK_SET);
 	fwrite(&word, sizeof(word), 1, fp);
 	fclose(fp);
-
 }
 
-void file_system::loadBitMap(unsigned short addr){}
+unsigned short file_system::applyBlock(){
+	return 7;
+}
 
-void file_system::dumpBitMap(unsigned short addr){}
-
-unsigned short file_system::applyBlock(){}
-
-void file_system::releaseBlock(unsigned short addr){}
+void file_system::releaseBlock(unsigned short blockIndex){
+}
 
 unsigned short file_system::applyINode() {
 	int offset = this->sys_node.inodeBitMap;
-	FILE *fp = fopen(this->sysFile, "r+");
+	fp = fopen(this->sysFile, "r+");
 	inodeBitMap node;
 	int nodeIndex=0;
 	while (true) {
@@ -84,13 +105,15 @@ unsigned short file_system::applyINode() {
 			node.bitmap[0] = 128;
 			fseek(fp, offset, SEEK_SET);
 			fwrite(&node, sizeof(node), 1, fp);
+			cout<<node.to_string();
 			goto success;
 		}
 		else {
 			for (int t = 0; t < inode_in_block; t++) {
 				int i = t / 8;
 				int j = t % 8;
-				bool temp = node.bitmap[i] | (1 << j);
+				char temp = node.bitmap[i] | (1 << (7-j));
+				cout<<"temp:"<<hex<<int(temp)<<" vs "<<hex<<int(node.bitmap[i])<<"\n";
 				if (temp != node.bitmap[i]) {
 					node.bitmap[i] = temp;
 					fseek(fp, offset, SEEK_SET);
@@ -105,44 +128,60 @@ unsigned short file_system::applyINode() {
 	}
 success:
 	fclose(fp);
+	//cout<<"applyINode "<<nodeIndex<<" "<<offset<<endl;
 	return nodeIndex;
 }
 
 inode file_system::getINode(unsigned short addr){
-	FILE *fp = fopen(this->sysFile, "r+");
+	fp = fopen(this->sysFile, "r+");
 	inodeBitMap map;
-	int offset = this->sys_node.inodeBitMap + (addr / inode_in_block) * 5;
+	int offset = this->sys_node.inodeBitMap + (addr / inode_in_block) * sizeof(inodeBitMap);
 	fseek(fp, offset, SEEK_SET);
 	fread(&map, sizeof(map), 1, fp);
-
+	cout<<map.to_string();
 	inode node;
 
-	int offset2 = map.addr * blockSize + (addr % inode_in_block) * sizeof(inode);
-	fseek(fp, offset, SEEK_SET);
-	fwrite(&node, sizeof(node), 1, fp);
+	int offset2 = map.addr * block_size + (addr % inode_in_block) * sizeof(inode);
+	fseek(fp, offset2, SEEK_SET);
+	fread(&node, sizeof(node), 1, fp);
 	fclose(fp);
 
 	return node;
 }
 
 void file_system::updateINode(inode node){
-	FILE *fp = fopen(this->sysFile, "r+");
+	fp = fopen(this->sysFile, "r+");
 	inodeBitMap map;
-	int offset = this->sys_node.inodeBitMap + (node.addr/inode_in_block)*5;
+	int offset = this->sys_node.inodeBitMap + (node.addr/inode_in_block)*sizeof(inodeBitMap);
 	fseek(fp, offset, SEEK_SET);
 	fread(&map, sizeof(map), 1, fp);
 
-	int offset2 = map.addr * blockSize + (node.addr % inode_in_block) * sizeof(inode);
-	fseek(fp, offset, SEEK_SET);
+
+	int offset2 = map.addr * block_size + (node.addr % inode_in_block) * sizeof(inode);
+
+	//cout<<"updateINode "<<map.addr<<" "<<map.bitmap<<" "<<offset2<<endl;
+	fseek(fp, offset2, SEEK_SET);
 	fwrite(&node, sizeof(node), 1, fp);
 
 	fclose(fp);
 }
 
 void file_system::releaseINode(unsigned short addr){
-	int node_addr = this->sys_node.inodeBitMap + (addr / inode_in_block) * 5;
+	int node_addr = this->sys_node.inodeBitMap + (addr / inode_in_block) * sizeof(inodeBitMap);
 	int offset = addr % inode_in_block;
 	setBitMap(node_addr + 2 + offset / 8, offset % 8, false);
 }
 
 void file_system::loadDir(inode* dirNode,list<fileNode>* list){}
+
+void file_system::test() {
+	cout<<"inode "<<sizeof(inode)<<" "<<sizeof(inodeBitMap)<<"\n";
+	inode a=getINode(0);
+	cout<<a.to_string();
+	inode b;
+	b.addr=applyINode();
+	b.parentAddr=a.addr;
+	b.isDirection=false;
+	updateINode(b);
+	cout<<b.to_string();
+}

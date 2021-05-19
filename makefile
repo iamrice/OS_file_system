@@ -3,3 +3,10 @@ file_system.exe : file_system.cpp file_system.h command.cpp main.cpp
 
 clean:
 	rm file_system.exe
+
+debug:
+	g++ -std=c++11 file_system.cpp file_system.h command.cpp main.cpp -o file_system.exe
+	file_system.exe
+
+run:
+	file_system.exe

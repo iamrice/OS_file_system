@@ -43,11 +43,10 @@ file_system.exe
    1. 为了系统的弹性使用，不对 inode 预留存储空间，当 inode 空间不足时会开辟一个新的 block。
    2. 为了有效回收删除的 inode 空间，为每一个存储 inode 的 block 维护一个 4B 长度的 bitmap，记录该 block 的使用情况。
    3. 储存 inode 的 block 地址和其 bitmap 会组成为一个 6B 的字节段存在系统文件的头部，方便申请新 inode 时的查询。
-3. 系统文件头部（4 block）：
+3. 系统文件头部（7 block）：
    1. 第一部分：rootNode，存有 blockBitMap 的地址、inodeBitMap 的地址、根目录 inode 的地址，共6B。
-   2. 第二部分：blockBitMap，系统有1024*16 个block，bitMap 占用 64B。
-   3. 第三部分：inodeBitMap，此部分动态增长，最大可达(1024*16 / 23) \* 6 B
-   4. ，因此预留 4 个block （包含前两部分）。
+   2. 第二部分：blockBitMap，系统有1024*16 个block，bitMap 占用 2048B。
+   3. 第三部分：inodeBitMap，此部分动态增长，最大可达(1024*16 / 21) \* 6 B，因此预留 4.5 个block。
 
 ![](https://z3.ax1x.com/2021/05/17/g2OPCn.png)
 
@@ -63,7 +62,7 @@ file_system.exe
 
 - [x] inode需要预留多少空间
 
-   一个 inode 43 byte，1个block可以存约23个；假设每个文件都很小，只占用1个block，那至多有16384个inode，会占用688个block的空间；假设每个文件都很大，占用522个block，那至少有32个inode。为了文件系统更好地弹性存储，不预设inode 的空间，而是动态分配。
+   一个 inode 48 byte，1个block可以存约21个；假设每个文件都很小，只占用1个block，那至多有16384个inode，会占用688个block的空间；假设每个文件都很大，占用522个block，那至少有32个inode。为了文件系统更好地弹性存储，不预设inode 的空间，而是动态分配。
 
 - [x] 空闲块如何维护
 
@@ -71,7 +70,7 @@ file_system.exe
 
    文件的存储单位是byte，如果使用bit的话需要有一定的转换。例如，1~8个block的state为x=11010011，如果要修改第3个block，则令 x=x | 00100000，得到11110011；如果要修改第7个block，则令 x= x & 11111101。
 
-- [ ] short 只有 2B，不足以表达 inode 的位置，inode 位置包括 block 和 offset，需要 14+5 bit。但这会破坏紧凑的结构
+- [x] short 只有 2B，不足以表达 inode 的位置，inode 位置包括 block 和 offset，需要 14+5 bit。但这会破坏紧凑的结构
   有一种解决方法：跳转。inode 地址指向它所在的 bitmap，再通过 bitmap 上记录的地址去查找。使用到 inode 地址的只有目录文件。
 
 
