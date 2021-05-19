@@ -2,7 +2,10 @@
 #define FILE_SYSTEM_H
 #include <string>
 #include <string.h>
+#include <sstream>
 #include <list>
+#include <time.h>
+#include <iostream>
 
 struct fileNode
 {
@@ -19,20 +22,53 @@ struct sysNode
 
 struct inodeBitMap
 {
+	char bitmap[4];			//4B
 	unsigned short addr;	//2B
-	char bitmap[3];			//3B
+	std::string to_string(){
+		std::stringstream ss;
+		ss.str("");
+		ss<<"--------inodeBitMap---------"<<"\n";
+		ss<<"addr "<<addr<<"\n";
+		ss<<std::hex<<int(bitmap[0])<<" "<<int(bitmap[1])<<" "<<int(bitmap[2])<<" "<<int(bitmap[3])<<"\n";
+		ss<<"----------------------------"<<"\n";
+		return ss.str();
+	}
 };
 
 struct inode
 {
+	bool isDirection;		//1B
 	unsigned short addr;			//2B，记录当前位置
 	unsigned short parentAddr;		//2B
 	unsigned short size;			//2B
-	unsigned char isDirection;		//1B
+	unsigned short indirectBlock = 0;//2B
+	unsigned short directBlock[10]={0};	//20B
 	time_t lastModify;				//8B
 	time_t createTime;				//8B
-	unsigned short directBlock[10]={0};	//20B
-	unsigned short indirectBlock = 0;	//2B
+	std::string to_string(){
+		std::stringstream ss;
+		ss.str("");
+		ss<<"--------inode---------"<<"\n";
+		ss<<"addr "<<addr<<"\n";
+		ss<<"parentAddr "<<parentAddr<<"\n";
+		ss<<"isDirection "<<isDirection<<"\n";
+		ss<<"size "<<size<<"\n";
+		ss<<"createTime "<<createTime<<"\n";
+		ss<<"lastModify "<<lastModify<<"\n";
+		for(int i=0;i<10;i++){
+			if(directBlock[i]==0)
+				break;
+			ss<<"direct block "<<i<<": "<<directBlock[i]<<"\n";
+		}
+		if(indirectBlock>0)
+			ss<<"indirectBlock: "<<indirectBlock<<"\n";
+		ss<<"---------------------"<<"\n";
+		return ss.str();
+	}
+	inode(){
+		time(&createTime);
+		time(&lastModify);
+	}
 };
 
 class file_system
@@ -98,8 +134,11 @@ public:
 	void test();
 
 private:
-	int blockSize = 1024;
-	int inode_in_block = 23;
+	int block_size = 1024;
+	int system_size=1024*1024*16;
+	int block_num=1024*16;
+	int block_bitmap_size=1024*2;
+	int inode_in_block=21;
 	const char* sysFile;
 	sysNode sys_node; 
 	FILE *fp;

@@ -5,6 +5,9 @@
 #directory
 Project1/
 
+#system file
+system
+
 #execute
 *.exe
 
