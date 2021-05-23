@@ -44,7 +44,7 @@ file_system.exe
    2. 为了有效回收删除的 inode 空间，为每一个存储 inode 的 block 维护一个 4B 长度的 bitmap，记录该 block 的使用情况。
    3. 储存 inode 的 block 地址和其 bitmap 会组成为一个 6B 的字节段存在系统文件的头部，方便申请新 inode 时的查询。
 3. 系统文件头部（7 block）：
-   1. 第一部分：rootNode，存有 blockBitMap 的地址、inodeBitMap 的地址、根目录 inode 的地址，共6B。
+   1. 第一部分：rootNode，存有 blockBitMap 的地址、inodeBitMap 的地址、根目录 inode 的地址，共12B。
    2. 第二部分：blockBitMap，系统有1024*16 个block，bitMap 占用 2048B。
    3. 第三部分：inodeBitMap，此部分动态增长，最大可达(1024*16 / 21) \* 6 B，因此预留 4.5 个block。
 
@@ -66,7 +66,7 @@ file_system.exe
 
 - [x] 空闲块如何维护
 
-   使用 bitmap 相对简单，因为16MB 一共16384 个block，所以使用bitmap 是可行的。占用 64byte，可存在第一个block内。
+   使用 bitmap 相对简单，因为16MB 一共16384 个block，所以使用bitmap 是可行的。占用 2048byte，可存在第一个block内。
 
    文件的存储单位是byte，如果使用bit的话需要有一定的转换。例如，1~8个block的state为x=11010011，如果要修改第3个block，则令 x=x | 00100000，得到11110011；如果要修改第7个block，则令 x= x & 11111101。
 
