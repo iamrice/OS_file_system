@@ -5,6 +5,9 @@
 #directory
 Project1/
 
+#image
+*.jpg
+
 #system file
 system
 

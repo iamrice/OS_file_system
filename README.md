@@ -48,7 +48,7 @@ file_system.exe
    2. 第二部分：blockBitMap，系统有1024*16 个block，bitMap 占用 2048B。
    3. 第三部分：inodeBitMap，此部分动态增长，最大可达(1024*16 / 21) \* 6 B，因此预留 4.5 个block。
 
-![](https://z3.ax1x.com/2021/05/19/g5Nbid.png)
+![](https://z3.ax1x.com/2021/05/24/gxeIDP.png)
 
 ## 待解决的问题
 

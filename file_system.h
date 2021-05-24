@@ -141,8 +141,9 @@ private:
 	int inode_in_block=21;
 	int fileNode_in_block=64;
 	const char* sysFile;
-	sysNode sys_node; 
 	FILE *fp; //注意！既然定义成了成员变量，那么在编程过程中要注意不可以重复打开文件，不然第一个文件指针会丢失。
+	sysNode sys_node; 
+	inode current;
 
 	/***************
 	createFileSystem: 当系统第一次运行时调用，创建16MB 的文件，并初始化bitmap和根目录结点，初始化第一个inodebitmap
@@ -183,6 +184,7 @@ private:
 	***************/
 	std::list<fileNode> loadDir(inode dirNode);
 	int get_indirect_block_index(int addr,int block_count);
+	int add_indirect_block_index(int addr,int block_count,unsigned short block_index);
 	void add_file_node(inode dirNode,fileNode node);
 	void delete_file_node(inode dirNode,char* file_name);
 
