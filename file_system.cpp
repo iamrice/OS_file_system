@@ -57,6 +57,8 @@ void file_system::createFileSystem(){
 	fseek(fp, 0, SEEK_SET);
 	fwrite(&sys_node, sizeof(sys_node), 1, fp);
 	fclose(fp);
+
+	current=root;
 }
 
 void file_system::openFileSystem(){
@@ -64,6 +66,9 @@ void file_system::openFileSystem(){
 	fseek(fp, 0, SEEK_SET);
 	fread(&sys_node, sizeof(sys_node), 1, fp);
 	fclose(fp);
+
+	current=getINode(sys_node.rootINode);
+
 }
 
 void file_system::setBitMap(unsigned short addr,int offset, bool bit) {
@@ -179,6 +184,14 @@ int file_system::get_indirect_block_index(int addr,int block_count){
 	fread(&block_index,sizeof(block_index),1,fp);
 	fclose(fp);
 	return block_index;
+}
+
+
+int file_system::add_indirect_block_index(int addr,int block_count,unsigned short block_index){
+	fp = fopen(this->sysFile, "r+");
+	fseek(fp,addr*block_size+block_count*sizeof(block_index),SEEK_SET);
+	fwrite(&block_index,sizeof(block_index),1,fp);
+	fclose(fp);
 }
 
 list<fileNode> file_system::loadDir(inode dirNode){
