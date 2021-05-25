@@ -19,6 +19,7 @@ struct sysNode
 	unsigned short inodeBitMap;//2B,地址单位是字节
     unsigned short blockBitMap;//2B,bitmap 位置，地址单位是字节
     unsigned short rootINode;//2B 第一个inode的位置
+	
 };
 
 struct inodeBitMap
@@ -170,7 +171,7 @@ private:
 	void loadBitMap(unsigned short addr);
 	void dumpBitMap(unsigned short addr);
 	*/
-	unsigned short applyBlock();
+	unsigned int applyBlock();
 	void releaseBlock(unsigned int addr);
 	void releaseItem(unsigned int blockId, unsigned int id);
 	/***************

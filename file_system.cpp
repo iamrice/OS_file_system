@@ -86,30 +86,46 @@ void file_system::setBitMap(unsigned short addr,int offset, bool bit) {
 
 //unsigned short file_system::getAvaiableBlock(unsigned short addr, ) {}
 
-unsigned short file_system::applyBlock(){
-	for (int i = 0; i < block_num; i++)
+unsigned int file_system::applyBlock(){
+	if (this->sys_node.blockUsed >= block_num) {
+		return 0;
+	}
+	int blockAd = this->sys_node.rootINode;
+	int ans = -1;
+	for (int i = 0; i < block_bitmap_size; i++)
 	{
-		if (blockBitmap[i] == 0) {
-			releaseBlock(i);
-			return i;
+		blockAd += i;
+		fseek(fp, blockAd, SEEK_SET);
+		int n = fgetc(fp);
+		if (!n)
+		{
+			ans = i;
+			break;
 		}
 	}
-	printf("no free block!\n");
-	return 0;
+	if(ans == -1) 
+	    return 0;
+	else return ans;
 }
 
 
 void file_system::releaseBlock(unsigned int blockId){
-	unsigned int addr = 
-	setBitMap()
+	int blockAddr = blockId / 8 + this->sys_node.rootINode;
+	int offset = blockId % 8;
+	setBitMap(blockAddr, offset , false);
 }
 
-void file_system::releaseItem(unsigned int blockId, unsigned int id){
-	int offset = blockId * block_size;
+void file_system::releaseItem(unsigned int blockId, unsigned int offset){
+	int offset = this->sys_node.blockBitMap + this->sys_node.rootINode + this->sys_node.inodeBitMap + blockId * block_size;
 	fp = fopen(this->sysFile, "r+");
 	fseek(fp, offset,SEEK_SET);
-	for()
+	for (int i = 0; i < block_num; i++)
+	{
+		fputc(0, fp);
+	}
+	fclose(fp);
 }
+
 unsigned short file_system::applyINode() {
 	int offset = this->sys_node.inodeBitMap;
 	fp = fopen(this->sysFile, "r+");
