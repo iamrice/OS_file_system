@@ -17,6 +17,7 @@ struct rootNode
     unsigned short blockFree;//2B,空闲块数量*/
     unsigned short blockBitMap;//2B,bitmap 位置
     unsigned short rootINode;//2B 第一个inode的位置
+	unsigned short blockUsed = 7;
 };
 
 struct inode
