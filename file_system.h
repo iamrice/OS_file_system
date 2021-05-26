@@ -7,6 +7,7 @@
 #include <time.h>
 #include <iostream>
 
+
 struct fileNode
 {
 	unsigned short nodeAddr;//2B
@@ -15,9 +16,10 @@ struct fileNode
 
 struct sysNode
 {
-	unsigned int inodeBitMap;//4B,地址单位是字节
-    unsigned int blockBitMap;//4B,bitmap 位置，地址单位是字节
-    unsigned int rootINode;//4B 第一个inode的位置
+	unsigned short inodeBitMap;//2B,地址单位是字节
+    unsigned short blockBitMap;//2B,bitmap 位置，地址单位是字节
+    unsigned short rootINode;//2B 第一个inode的位置
+	
 };
 
 struct inodeBitMap
@@ -40,7 +42,7 @@ struct inode
 	bool isDirection;		//1B
 	unsigned short addr;			//2B，记录当前位置
 	unsigned short parentAddr;		//2B
-	unsigned short size;			//2B,单位是block
+	unsigned short size;			//2B
 	unsigned short indirectBlock = 0;//2B
 	unsigned short directBlock[10]={0};	//20B
 	time_t lastModify;				//8B
@@ -133,18 +135,21 @@ public:
 
 	void test();
 
+	void help();
+
 private:
 	int block_size = 1024;
 	int system_size=1024*1024*16;
 	int block_num=1024*16;
 	int block_bitmap_size=1024*2;
 	int inode_in_block=21;
-	int fileNode_in_block=64;
 	const char* sysFile;
-	FILE *fp; //注意！既然定义成了成员变量，那么在编程过程中要注意不可以重复打开文件，不然第一个文件指针会丢失。
 	sysNode sys_node; 
-	inode current;
+	FILE *fp;
 
+	unsigned int blockFree;//空闲块数量
+
+	unsigned char* blockBitmap;
 	/***************
 	createFileSystem: 当系统第一次运行时调用，创建16MB 的文件，并初始化bitmap和根目录结点，初始化第一个inodebitmap
 	openFileSystem: 当系统文件已存在时调用，载入系统内容。
@@ -159,16 +164,16 @@ private:
 	applyBlock\releaseBlock:
 		a. 维护空闲块,可选用的方法有bitmap、空闲链表法、空闲表法
 		b. 在申请空间时查找空闲块，返回地址并标记为已占用
-		c. 在释放空间时将块空间清零（防止复用时出错），将块标记为空闲
+		c. 在释放空间时将块标记为空闲
 	***************/
 	void setBitMap(unsigned short addr,int offset, bool bit);
 	/*
 	void loadBitMap(unsigned short addr);
 	void dumpBitMap(unsigned short addr);
 	*/
-	unsigned short applyBlock();
-	void releaseBlock(unsigned short addr);
-
+	unsigned int applyBlock();
+	void releaseBlock(unsigned int addr);
+	void releaseItem(unsigned int blockId, unsigned int id);
 	/***************
 	getINode: 根据地址在文件中读取内容，转为inode结构
 	updateINode：将INode重新写入文件
@@ -177,16 +182,12 @@ private:
 	unsigned short applyINode();
 	inode getINode(unsigned short addr);
 	void updateINode(inode node);
-	void releaseINode(unsigned short addr);
+	void releaseINode(unsigned short blockId);
 
 	/***************
 	loadDir: 给定一个目录，inode，根据size去读取目录内容，整理成list。
 	***************/
-	std::list<fileNode> loadDir(inode dirNode);
-	int get_indirect_block_index(int addr,int block_count);
-	int add_indirect_block_index(int addr,int block_count,unsigned short block_index);
-	void add_file_node(inode dirNode,fileNode node);
-	void delete_file_node(inode dirNode,char* file_name);
+	void loadDir(inode* dirNode,std::list<fileNode>* list);
 
 };
 #endif

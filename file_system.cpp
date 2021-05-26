@@ -43,6 +43,7 @@ void file_system::createFileSystem(){
 	setBitMap(6, 6, true);
 
 	sys_node.inodeBitMap = sizeof(sysNode)+ block_bitmap_size;
+	sys_node.blockBitMap = sizeof(sysNode);
 
 	inode root;
 	root.addr = applyINode();
@@ -57,8 +58,6 @@ void file_system::createFileSystem(){
 	fseek(fp, 0, SEEK_SET);
 	fwrite(&sys_node, sizeof(sys_node), 1, fp);
 	fclose(fp);
-
-	current=root;
 }
 
 void file_system::openFileSystem(){
@@ -66,9 +65,6 @@ void file_system::openFileSystem(){
 	fseek(fp, 0, SEEK_SET);
 	fread(&sys_node, sizeof(sys_node), 1, fp);
 	fclose(fp);
-
-	current=getINode(sys_node.rootINode);
-
 }
 
 void file_system::setBitMap(unsigned short addr,int offset, bool bit) {
@@ -88,11 +84,46 @@ void file_system::setBitMap(unsigned short addr,int offset, bool bit) {
 	fclose(fp);
 }
 
-unsigned short file_system::applyBlock(){
-	return 7;
+//unsigned short file_system::getAvaiableBlock(unsigned short addr, ) {}
+
+unsigned int file_system::applyBlock(){
+	if (this->sys_node.blockUsed >= block_num) {
+		return 0;
+	}
+	int blockAd = this->sys_node.rootINode;
+	int ans = -1;
+	for (int i = 0; i < block_bitmap_size; i++)
+	{
+		blockAd += i;
+		fseek(fp, blockAd, SEEK_SET);
+		int n = fgetc(fp);
+		if (!n)
+		{
+			ans = i;
+			break;
+		}
+	}
+	if(ans == -1) 
+	    return 0;
+	else return ans;
 }
 
-void file_system::releaseBlock(unsigned short blockIndex){
+
+void file_system::releaseBlock(unsigned int blockId){
+	int blockAddr = blockId / 8 + this->sys_node.rootINode;
+	int offset = blockId % 8;
+	setBitMap(blockAddr, offset , false);
+}
+
+void file_system::releaseItem(unsigned int blockId, unsigned int offset){
+	int offset = this->sys_node.blockBitMap + this->sys_node.rootINode + this->sys_node.inodeBitMap + blockId * block_size;
+	fp = fopen(this->sysFile, "r+");
+	fseek(fp, offset,SEEK_SET);
+	for (int i = 0; i < block_num; i++)
+	{
+		fputc(0, fp);
+	}
+	fclose(fp);
 }
 
 unsigned short file_system::applyINode() {
@@ -133,7 +164,7 @@ unsigned short file_system::applyINode() {
 	}
 success:
 	fclose(fp);
-	//cout<<"applyINode "<<nodeIndex<<" "<<offset<<endl;
+	//cout<<"applyI	Node "<<nodeIndex<<" "<<offset<<endl;
 	return nodeIndex;
 }
 
@@ -177,131 +208,10 @@ void file_system::releaseINode(unsigned short addr){
 	setBitMap(node_addr + 2 + offset / 8, offset % 8, false);
 }
 
-int file_system::get_indirect_block_index(int addr,int block_count){
-	fp = fopen(this->sysFile, "r");
-	unsigned short block_index;
-	fseek(fp,addr*block_size+block_count*sizeof(block_index),SEEK_SET);
-	fread(&block_index,sizeof(block_index),1,fp);
-	fclose(fp);
-	return block_index;
-}
-
-
-int file_system::add_indirect_block_index(int addr,int block_count,unsigned short block_index){
-	fp = fopen(this->sysFile, "r+");
-	fseek(fp,addr*block_size+block_count*sizeof(block_index),SEEK_SET);
-	fwrite(&block_index,sizeof(block_index),1,fp);
-	fclose(fp);
-}
-
-list<fileNode> file_system::loadDir(inode dirNode){
-	list<fileNode> list;
-	int block_count=0;
-	while(block_count<dirNode.size){
-		int block_index;
-		if(block_count<10){
-			block_index=dirNode.directBlock[block_count];
-		}else{
-			block_index=get_indirect_block_index(dirNode.indirectBlock,block_count-10);
-		}
-		block_count++;
-
-		fp = fopen(this->sysFile, "r");
-		for(int i=0;i<fileNode_in_block;i++){
-			fseek(fp, block_index*block_size+i*sizeof(fileNode), SEEK_SET);
-			fileNode node;
-			fread(&node,sizeof(node),1,fp);
-			if(node.nodeAddr!=0){
-				list.push_back(node);
-			}
-		}
-		fclose(fp);
-	}
-
-	return list;
-}
-
-
-void file_system::add_file_node(inode dirNode,fileNode new_node){
-	int block_count=0;
-	int new_block_index;
-	while(block_count<dirNode.size){
-		int block_index;
-		if(block_count<10){
-			block_index=dirNode.directBlock[block_count];
-		}else{
-			block_index=get_indirect_block_index(dirNode.indirectBlock,block_count-10);
-		}
-		block_count++;
-
-		fp = fopen(this->sysFile, "r+");
-		for(int i=0;i<fileNode_in_block;i++){
-			fseek(fp, block_index*block_size+i*sizeof(fileNode), SEEK_SET);
-			fileNode node;
-			fread(&node,sizeof(node),1,fp);
-			if(node.nodeAddr==0){
-				fseek(fp, block_index*block_size+i*sizeof(fileNode), SEEK_SET);
-				fwrite(&new_node,sizeof(new_node),1,fp);
-				fclose(fp);
-				goto success;
-			}
-		}
-		fclose(fp);
-	}
-	fail:
-	new_block_index=applyBlock();
-	if(dirNode.size<10){
-		dirNode.directBlock[dirNode.size]=new_block_index;
-	}else{
-		fp = fopen(this->sysFile, "r+");
-		fseek(fp,dirNode.indirectBlock*block_size+(dirNode.size-10)*sizeof(new_block_index),SEEK_SET);
-		fwrite(&new_block_index,sizeof(new_block_index),1,fp);
-		fclose(fp);
-	}
-	dirNode.size++;
-	updateINode(dirNode);
-
-	fp = fopen(this->sysFile, "r+");
-	fseek(fp,new_block_index*block_size,SEEK_SET);
-	fwrite(&new_node,sizeof(new_node),1,fp);
-	fclose(fp);
-
-	success:
-	return;
-}
-
-void file_system::delete_file_node(inode dirNode,char* file_name){
-	int block_count=0;
-	while(block_count<dirNode.size){
-		int block_index;
-		if(block_count<10){
-			block_index=dirNode.directBlock[block_count];
-		}else{
-			block_index=get_indirect_block_index(dirNode.indirectBlock,block_count-10);
-		}
-		block_count++;
-
-		fp = fopen(this->sysFile, "r");
-		for(int i=0;i<fileNode_in_block;i++){
-			fseek(fp, block_index*block_size+i*sizeof(fileNode), SEEK_SET);
-			fileNode node;
-			fread(&node,sizeof(node),1,fp);
-			if(node.nodeAddr!=0 && strcmp(node.name,file_name)==0){
-				node.nodeAddr=0;
-				fseek(fp, block_index*block_size+i*sizeof(fileNode), SEEK_SET);
-				fwrite(&node,sizeof(node),1,fp);
-				fclose(fp);
-				goto success;
-			}
-		}
-		fclose(fp);
-	}
-	success:
-	return;
-}
+void file_system::loadDir(inode* dirNode,list<fileNode>* list){}
 
 void file_system::test() {
-	cout<<"inode "<<sizeof(inode)<<" "<<sizeof(inodeBitMap)<<" sysnode "<<sizeof(sysNode)<<"\n";
+	cout<<"inode "<<sizeof(inode)<<" "<<sizeof(inodeBitMap)<<"\n";
 	inode a=getINode(0);
 	cout<<a.to_string();
 	inode b;
@@ -310,4 +220,20 @@ void file_system::test() {
 	b.isDirection=false;
 	updateINode(b);
 	cout<<b.to_string();
+}
+
+void file_system::help()
+{
+	printf("command: \n\
+    help       ---  show help menu \n\
+    createFile ---  Create a file: createFile fileName fileSize \n\
+    deleteFile ---  Delete a file: deleteFile fileName \n\
+    createDir  ---  Create a directory：createDir directoryPath \n\
+    deleteDir  ---  Delete a directory: deleteDir directoryPath \n\
+    changeDir  ---  Change current working direcotry:changeDir path \n\
+    dir        ---  List all the files and sub-directories under current working directory \n\
+    cp         ---  Copy a file: cp file1 file2 \n\
+    sum        ---  Display the usage of storage space \n\
+    cat        ---  Print out the file contents:cat fileName \n\
+    exit       ---  exit this system ");
 }
