@@ -1,23 +1,77 @@
 #include "file_system.h"
 #include <iostream>
+#include<cstdio>
 using namespace std;
+
+const char* command[] = { "help","createFile","deleteFile","createDir","dir","cp","sum","cat","exit" };
 
 int main(){
 	file_system system;
-	string str;
-	cout<<">>>";
+	//system.test();
+	
+	char Command[30],name[30];
+	int Com = -1,fileSize;
+	bool exit = 0;
+	
 	while(true){
-		getline(cin,str);
-		
-		/****************
-		requirement: 指令处理器
-			a. 按空格分割指令，并传递参数给对应的函数
-			b. 如果参数数量正确，传递给对应的函数,输出">>>"，等待下一个指令；
-			c. 如果参数数量不足，则缓存已有参数，输出"...",等待用户继续输入；
-			d. 如果参数数量过多，则报错。
-			e. 如果指令是help，则输出所有指令以及其作用
-		****************/
-		cout<<str<<endl;
-		cout<<">>>";
+		printf("FileSystem@fileSystem:");
+		scanf("%s", command);
+
+		for (int i = 0; i < 9; i++) {
+			if (!strcmp(Command, command[i])) {
+				Com = i;
+				break;
+			}
+		}
+		printf("FileSystem@fileSystem:");
+
+		switch (Com) {
+			case 0:
+				system.help();
+				break;
+			case 1:
+				scanf("%s%d", name, fileSize);
+				system.createFile(name, fileSize);
+				break;
+			case 2:
+				scanf("%s", name);
+				system.deleteFile(name);
+				break;
+			case 3:
+				scanf("%s", name);
+				system.createDir(name);
+				break;
+			case 4:
+				scanf("%s", name);
+				system.deleteDir(name);
+				break;
+			case 5:
+				scanf("%s", name);
+				system.changeDir(name);
+				break;
+			case 6://dir
+				system.listDir();
+				break;
+			case 7:
+				char name2[30];
+				scanf("%s%s", name, name2);
+				system.copy(name, name2);
+				break;
+			case 8:
+				system.sum();
+				break;
+			case 9:
+				scanf("%s", name);
+				system.cat(name);
+				break;
+			case 10:
+				exit = 1;
+				break;
+		}
+			
+		if (exit) {
+			return 0;
+		}
+
 	}
 }		

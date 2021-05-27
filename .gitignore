@@ -2,6 +2,15 @@
 *.doc
 *.docx
 
+#directory
+Project1/
+
+#image
+*.jpg
+
+#system file
+system
+
 #execute
 *.exe
 
