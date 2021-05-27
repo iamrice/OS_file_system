@@ -19,6 +19,9 @@ struct sysNode
 	unsigned short inodeBitMap;//2B,地址单位是字节
     unsigned short blockBitMap;//2B,bitmap 位置，地址单位是字节
     unsigned short rootINode;//2B 第一个inode的位置
+
+	unsigned short blockUsed = 7;
+
 	
 };
 
@@ -35,6 +38,7 @@ struct inodeBitMap
 		ss<<"----------------------------"<<"\n";
 		return ss.str();
 	}
+
 };
 
 struct inode
