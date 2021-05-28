@@ -76,8 +76,8 @@ struct inode
 		return ss.str();
 	}
 	inode(){
-		std::time(&createTime);
-		std::time(&lastModify);
+		time(&createTime);
+		time(&lastModify);
 	}
 };
 
