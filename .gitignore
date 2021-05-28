@@ -1,15 +1,17 @@
 #document
 *.doc
 *.docx
+*.txt
 
 #directory
 Project1/
+.idea/
 
 #image
 *.jpg
 
 #system file
-system
+/system
 
 #execute
 *.exe
