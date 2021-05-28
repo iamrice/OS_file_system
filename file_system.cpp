@@ -299,7 +299,7 @@ void file_system::delete_file_node(inode dirNode,char* file_name){
 	success:
 	return;
 }
-
+//test
 void file_system::test() {
 	cout<<"inode "<<sizeof(inode)<<" "<<sizeof(inodeBitMap)<<" sysnode "<<sizeof(sysNode)<<"\n";
 	inode a=getINode(0);
