@@ -1,13 +1,16 @@
+#include "pch.h"
 #include "file_system.h"
 
 #include <regex>
 using namespace std;
 
 /*
-ÔÚ¸¸Ä¿Â¼Àï¸ù¾İÎÄ¼şÃû×ÖÕÒµ½¶ÔÓ¦µÄInode
+åœ¨çˆ¶ç›®å½•é‡Œæ ¹æ®æ–‡ä»¶åå­—æ‰¾åˆ°å¯¹åº”çš„Inode
 */
 inode file_system::find_entry(inode dir, string file_name) {
-	inode node;
+
+	inode node, null_node;
+	null_node.addr = NULL;
 	list<fileNode> fileList = loadDir(dir);
 	list<fileNode>::iterator it;
 	for (it = fileList.begin(); it != fileList.end(); it++) {
@@ -17,26 +20,29 @@ inode file_system::find_entry(inode dir, string file_name) {
 			return node;
 		}
 	}
-	return node;//ÕâÀïÕâÑù¿ÉÒÔÂğ£¿¸Ğ¾õ¹Ö¹ÖµÄ
+	return null_node;//è¿™é‡Œç”¨null_nodeè¡¨ç¤ºæ‰¾ä¸åˆ°å¯¹åº”çš„Inode
 }
 
-/*¸ø³öÒ»¸öÂ·¾¶£¬·µ»ØÂ·¾¶Ö¸ÏòµÄinode½Úµã
-¶ÔÓÚÂ·¾¶ /dir/file ·µ»ØÖ¸ÏòfileµÄinode½Úµã
+/*ç»™å‡ºä¸€ä¸ªè·¯å¾„ï¼Œè¿”å›è·¯å¾„æŒ‡å‘çš„inodeèŠ‚ç‚¹
+å¯¹äºè·¯å¾„ /dir/file è¿”å›æŒ‡å‘fileçš„inodeèŠ‚ç‚¹
 */
 inode file_system::get_path_inode(string pathname) {
-	inode node, dir;
-	regex e1("(\/\\w{1,30})+");//ÅĞ¶Ï/dir/fileÀàĞÍ
-	regex e2("^.(\/\\w{1,30})+");//ÅĞ¶Ï./dir/fileÀàĞÍ£º¼´´Óµ±Ç°Ä¿Â¼¿ªÊ¼
-	if (!regex_match(s, e1) && !regex_match(s, e2) {
+
+	inode node, dir, null_node;
+	null_node.addr = NULL;
+	regex e1("(/\\w{1,30})+");//åˆ¤æ–­/dir/fileç±»å‹
+	regex e2("^.(/\\w{1,30})+");//åˆ¤æ–­./dir/fileç±»å‹ï¼šå³ä»å½“å‰ç›®å½•å¼€å§‹
+	if (!regex_match(pathname, e1) && !regex_match(pathname, e2)) {
+
 		cout << "Wrong path!" << endl;
-			return NULL;
+		return null_node;//è¿™é‡Œè¯¥è¿”å›ä»€ä¹ˆï¼Ÿ
 	}
-	else if (regex_match(s, e2)) {
+	else if (regex_match(pathname, e2)) {
 		dir = this->current;
-			pathname.erase(0, 1);
+		pathname.erase(0, 1);
 	}
-	else if (regx_match(s, e1)) {
-		dir = = getINode((this->sys_node).rootINode);
+	else if (regex_match(pathname, e1)) {
+		dir = getINode((this->sys_node).rootINode);
 	}
 	regex e("\\w{1,30}");//
 	smatch sm;
@@ -45,9 +51,9 @@ inode file_system::get_path_inode(string pathname) {
 	while (regex_search(a, b, sm, e)) {
 		//cout << sm[0] << endl;
 		dir = find_entry(dir, sm[0]);
-		if (!dir) {//ÕâÀïÏÈÕâÑùÅĞ¶Ï
+		if (dir.addr == NULL) {//åˆ¤æ–­
 			cout << "Wrong path!" << endl;
-			return;
+			return null_node;
 		}
 		a = sm[0].second;
 	}
@@ -55,25 +61,29 @@ inode file_system::get_path_inode(string pathname) {
 	return node;
 }
 
-//ÓÃÓÚ´´½¨ÎÄ¼şºÍÎÄ¼ş¼Ğ,copy
-/*¸ø³öÒ»¸öÂ·¾¶£¬·µ»ØÂ·¾¶ÉÏÒ»²ãÄ¿Â¼µÄinode½Úµã£¨¼´³ıÈ¥ÎÄ¼şµÄÂ·¾¶inode£©
-¶ÔÓÚÂ·¾¶ /dir/file ·µ»ØÖ¸ÏòdirµÄinode½Úµã
+//ç”¨äºåˆ›å»ºæ–‡ä»¶å’Œæ–‡ä»¶å¤¹,copy
+/*ç»™å‡ºä¸€ä¸ªè·¯å¾„ï¼Œè¿”å›è·¯å¾„ä¸Šä¸€å±‚ç›®å½•çš„inodeèŠ‚ç‚¹ï¼ˆå³é™¤å»æ–‡ä»¶çš„è·¯å¾„inodeï¼‰
+å¯¹äºè·¯å¾„ /dir/file è¿”å›æŒ‡å‘dirçš„inodeèŠ‚ç‚¹
 */
 inode file_system::get_path_inode_except_name(string pathname) {
-	size_t index = pathname.find_last_of("\/");
+
+	size_t index = pathname.find_last_of("/");
+
 	pathname = pathname.erase(index);
 	return get_path_inode(pathname);
 }
-//×¨ÃÅÓÃÓÚ´´½¨ÎÄ¼şºÍÎÄ¼ş¼ĞÁ½¸öº¯Êı£»,copy£¬µ«ÊÇÔİÊ±»¹Ã»ÓÃµ½¹ı
+//ä¸“é—¨ç”¨äºåˆ›å»ºæ–‡ä»¶å’Œæ–‡ä»¶å¤¹ä¸¤ä¸ªå‡½æ•°ï¼›,copyï¼Œä½†æ˜¯æš‚æ—¶è¿˜æ²¡ç”¨åˆ°è¿‡
 char* file_system::get_create_file_name(string pathname) {
-	size_t index = pathname.find_last_of("\/");
+
+	size_t index = pathname.find_last_of("/");
+
 	string filename = pathname.substr(index);
 	char file[30];
 	strcpy_s(file, filename.c_str());
-	return file;//ÕâÀïµÄ×Ö·û´®ÂÒÂëÎÊÌâ»¹Ã»½â¾ö£¡£¡£¡£¡£¡
+	return file;//è¿™é‡Œçš„å­—ç¬¦ä¸²ä¹±ç é—®é¢˜è¿˜æ²¡è§£å†³ï¼ï¼ï¼ï¼ï¼
 }
 
-//¸ù¾İfile_inodeºÍdirµÃµ½¸ÃÎÄ¼şµÄÃû×Ö£»
+//æ ¹æ®file_inodeå’Œdirå¾—åˆ°è¯¥æ–‡ä»¶çš„åå­—ï¼›
 char* file_system::get_name(inode dir, inode file_inode) {
 	list<fileNode> fileList = loadDir(dir);
 	list<fileNode>::iterator it;
@@ -83,14 +93,16 @@ char* file_system::get_name(inode dir, inode file_inode) {
 	}
 }
 
-//¸ù¾İfile_inodeµÃµ½ÎÄ¼ş/Ä¿Â¼µÄÂ·¾¶
-string file_system::get_path(inode file_inode) {//pathÓÃstring filenameÓÃchar*
+//æ ¹æ®file_inodeå¾—åˆ°æ–‡ä»¶/ç›®å½•çš„è·¯å¾„
+string file_system::get_path(inode file_inode) {//pathç”¨string filenameç”¨char*
 	string path;
 	string s = "/";
 	inode dir = getINode(file_inode.parentAddr);
-		s.append(get_name(dir, file_inode));
+
+	s.append(get_name(dir, file_inode));
 	path.insert(0, s);
-	while (dir != getINode((this->sys_node).rootINode)) {
+	while (dir.addr != (this->sys_node).rootINode) {//è¿™é‡Œç›´æ¥ç”¨åœ°å€æ¥åˆ¤æ–­æ˜¯å¦ä¸ºåŒä¸€ä¸ªInode
+
 		file_inode = dir;
 		dir = getINode(file_inode.parentAddr);
 		s = "/";
@@ -100,20 +112,27 @@ string file_system::get_path(inode file_inode) {//pathÓÃstring filenameÓÃchar*
 	return path;
 }
 
-/*¸ÃÂ·¾¶ÏÂµÄÄ¿Â¼inode dir£¬ºÍÄ¿Â¼µÄÄÚÈİ£ºdirFileNode
-ÏÈ¸øÎÄ¼ş·ÖÅäinode ºÍ block£¬¸ù¾İ·µ»ØÖµÅĞ¶ÏÊÇ·ñÓĞ¿Õ¼ä£¬
-ĞèÒªÒ»¸öfileNode,¼ÇÂ¼name ºÍ nodeAddr
-¼ÇÂ¼¸ÃInodeµÄ´´½¨Ê±¼ä£ºÖ±½Ótime(&create_Time)
-¼ÇÂ¼bool isDirection;		//1B
-	unsigned short addr;			//2B£¬¼ÇÂ¼µ±Ç°Î»ÖÃ
+void file_system::copyfile(FILE*to, FILE*from)
+{
+	int c;
+	while ((c = getc(from)) != EOF)
+		putc(c, to);
+}
+
+/*è¯¥è·¯å¾„ä¸‹çš„ç›®å½•inode dirï¼Œå’Œç›®å½•çš„å†…å®¹ï¼šdirFileNode
+å…ˆç»™æ–‡ä»¶åˆ†é…inode å’Œ blockï¼Œæ ¹æ®è¿”å›å€¼åˆ¤æ–­æ˜¯å¦æœ‰ç©ºé—´ï¼Œ
+éœ€è¦ä¸€ä¸ªfileNode,è®°å½•name å’Œ nodeAddr
+è®°å½•è¯¥Inodeçš„åˆ›å»ºæ—¶é—´ï¼šç›´æ¥time(&create_Time)
+è®°å½•bool isDirection;		//1B
+	unsigned short addr;			//2Bï¼Œè®°å½•å½“å‰ä½ç½®
 	unsigned short parentAddr;		//2B
-	unsigned short size;			//2B,µ¥Î»ÊÇblock
+	unsigned short size;			//2B,å•ä½æ˜¯block
 	unsigned short indirectBlock = 0;//2B
 	unsigned short directBlock[10] = { 0 };	//20B
 	time_t lastModify;				//8B
 	time_t createTime;
-×îºóupdate
-²Î¿¼
+æœ€åupdate
+å‚è€ƒ
 cout << "inode " << sizeof(inode) << " " << sizeof(inodeBitMap) << " sysnode " << sizeof(sysNode) << "\n";
 	inode a = getINode(0);
 	cout << a.to_string();
@@ -130,7 +149,7 @@ void file_system::createFile(string path, int size) {
 	inode new_inode;
 	new_inode.addr = applyINode();
 	if (new_inode.addr == 0) {
-		cout << "There is no space for a new file!" << endl;
+		std::cout << "There is no space for a new file!" << endl;
 		return;
 	}
 	int block_index;
@@ -139,10 +158,10 @@ void file_system::createFile(string path, int size) {
 		block_index = applyBlock();
 		this->sys_node.blockUsed++;
 		if (block_index == 0) {
-			cout << "There is no space for a new file!" << endl;
-			releaseINode(new_inode.addr);//ÊÍ·Å·ÖÅäµÄinode½Úµã
-			list<int>::iterator it;//ÊÍ·Å·ÖÅäµÄblock
-			for (it = address_list.begin(), it != address_list.end(); it++) {
+			std::cout << "There is no space for a new file!" << endl;
+			releaseINode(new_inode.addr);//é‡Šæ”¾åˆ†é…çš„inodeèŠ‚ç‚¹
+			list<int>::iterator it;//é‡Šæ”¾åˆ†é…çš„block
+			for (it = address_list.begin(); it != address_list.end(); *it++) {
 				if (*it != 0) {
 					releaseBlock(*it);
 					this->sys_node.blockUsed--;
@@ -157,31 +176,43 @@ void file_system::createFile(string path, int size) {
 	}
 	time(&new_inode.createTime);
 	new_inode.isDirection = false;
-	new_inode.parentAddr = dir;
+	new_inode.parentAddr = dir.addr;
 	new_inode.size = size;
+	list<int>::iterator it;
 	if (size <= 10) {
-		for (int i = 0; i < size; i++) {
-			new_inode.directBlock[i] = address_list[i];
+		int i = 0;
+		for (it = address_list.begin(); it != address_list.end(); it++) {
+			new_inode.directBlock[i] = *it;
+			i++;
+			if (i > size) break;
 		}
 	}
 	else {
-		for (int i = 0; i < 10; i++) {
-			new_inode.directBlock[i] = address_list[i];
+		int i = 0;
+		for (it = address_list.begin(); it != address_list.end(); it++) {
+			new_inode.directBlock[i] = *it;
+			i++;
+			if (i > 10) {
+				new_inode.indirectBlock = add_indirect_block_index(new_inode.addr, i - 10, block_index);//è¿™é‡Œå¯èƒ½ç”¨é”™äº†ï¼ŒindirectBlockåªæœ‰ä¸€ä¸ªï¼Œæ€ä¹ˆå¯ä»¥é‡å¤èµ‹å€¼å‘¢ï¼Ÿ
+			}
+
 		}
-		for (int j = 0; j < node.size - 10;j++) {
-			new_inode.indirectBlock = add_indirect_block_index(new_node.addr, j, block_index);//ÕâÀï¿ÉÄÜÓÃ´íÁË£¬indirectBlockÖ»ÓĞÒ»¸ö£¬ÔõÃ´¿ÉÒÔÖØ¸´¸³ÖµÄØ£¿
-		}
+		//for (int j = 0; j < new_inode.size - 10;j++) {
+		//	new_inode.indirectBlock = add_indirect_block_index(new_inode.addr, j, block_index);//è¿™é‡Œå¯èƒ½ç”¨é”™äº†ï¼ŒindirectBlockåªæœ‰ä¸€ä¸ªï¼Œæ€ä¹ˆå¯ä»¥é‡å¤èµ‹å€¼å‘¢ï¼Ÿ
+		//}
 		updateINode(new_inode);
-		add_file_node(dir, new_inode);//ÕâÀïÓÖÓĞÒ»¸öÎÊÌâ£¬¼ÓÈëµÄÊ±ºònameÃ»ÓĞÓÃµ½£¬ÔõÃ´¼ÓÈëÄØ
+		char* fname = get_create_file_name(path);
+		fileNode fnode(new_inode.addr, fname);
+		add_file_node(dir, fnode);
 	}
 }
 
 /*
-¶ÔÓ¦ÎÄ¼şµÄinode: node,¶ÔÓ¦Ä¿Â¼µÄinode: dir
+å¯¹åº”æ–‡ä»¶çš„inode: node,å¯¹åº”ç›®å½•çš„inode: dir
 */
 void file_system::deleteFile(string path) {
-	inode node = get_path_inode(path);//ÅĞ¶ÏÊÇ·ñÎªµ±Ç°ÎÄ¼ş
-	if (node == this->current) {
+	inode node = get_path_inode(path);//åˆ¤æ–­æ˜¯å¦ä¸ºå½“å‰æ–‡ä»¶
+	if (node.addr == this->current.addr) {//è¿™é‡Œç›´æ¥ç”¨åœ°å€æ¥åˆ¤æ–­æ˜¯å¦ä¸ºåŒä¸€ä¸ªInode
 		cout << "Cannot delete current file!" << endl;
 		return;
 	}
@@ -198,106 +229,106 @@ void file_system::deleteFile(string path) {
 			releaseBlock(node.directBlock[i]);
 			releaseItem(node.directBlock[i]);
 		}
-		for (int j = 0; j < node.size - 10) {
-			indirect_address = get_indirect_block_index(node->indirectBlock, j);
+		for (int j = 0; j < node.size - 10; j++) {
+			indirect_address = get_indirect_block_index(node.indirectBlock, j);
 			releaseBlock(indirect_address);
 			releaseItem(indirect_address);
 		}
 	}
-	char name[30];
+	char* name;
 	name = get_name(dir, node);
-	releaseINode(node->addr);
+	releaseINode(node.addr);
 	delete_file_node(dir, name);
 
 }
 
 /*
 */
-void file_system::createDir(string path, int size) {//ÕâÀïĞèÒªÖ§³ÖÇ¶Ì×µÄ£¬
+void file_system::createDir(string pathname) {//è¿™é‡Œéœ€è¦æ”¯æŒåµŒå¥—çš„ï¼Œ
+
 	inode dir;
-	regex e1("(\/\\w{1,30})+");//ÅĞ¶Ï/dir/fileÀàĞÍ
-	regex e2("^.(\/\\w{1,30})+");//ÅĞ¶Ï./dir/fileÀàĞÍ£º¼´´Óµ±Ç°Ä¿Â¼¿ªÊ¼
-	if (!regex_match(s, e1) && !regex_match(s, e2) {
+	regex e1("(/\\w{1,30})+");//åˆ¤æ–­/dir/fileç±»å‹
+	regex e2("^.(/\\w{1,30})+");//åˆ¤æ–­./dir/fileç±»å‹ï¼šå³ä»å½“å‰ç›®å½•å¼€å§‹
+	if (!regex_match(pathname, e1) && !regex_match(pathname, e2)) {
 		cout << "Wrong path!" << endl;
-			return;
+		return;
 	}
-	else if (regex_match(s, e2)) {
+	else if (regex_match(pathname, e2)) {
 		dir = this->current;
-			pathname.erase(0, 1);
+		pathname.erase(0, 1);
 	}
-	else if (regx_match(s, e1)) {
-		dir = = getINode((this->sys_node).rootINode);
+	else if (regex_match(pathname, e1)) {
+		dir = getINode((this->sys_node).rootINode);
 	}
-	regex e("\\w{1,30}");//ÊäÈë¸ñÊ½ÎŞÎó£¬ÕıÔò»¯µÃµ½¸÷¸öÄ¿Â¼
+	regex e("\\w{1,30}");//è¾“å…¥æ ¼å¼æ— è¯¯ï¼Œæ­£åˆ™åŒ–å¾—åˆ°å„ä¸ªç›®å½•
 	smatch sm;
 	string::const_iterator a = pathname.begin();
 	string::const_iterator b = pathname.end();
 	while (regex_search(a, b, sm, e)) {//
 		//cout << sm[0] << endl;
 		int block_index;
-		if (find_entry(dir, sm[0])) {//Èç¹ûÏÂÒ»¸ödir´æÔÚ£¬¼ÌĞøÍùÏÂÕÒ
+		if (find_entry(dir, sm[0]).addr != NULL) {//å¦‚æœä¸‹ä¸€ä¸ªdirå­˜åœ¨ï¼Œç»§ç»­å¾€ä¸‹æ‰¾
 			dir = find_entry(dir, sm[0]);
-			a = sum[0].second;
+			a = sm[0].second;
 			continue;
 		}
-		else {//Èç¹û²»´æÔÚ£¬ÔòÒª´´½¨Ò»¸öĞÂµÄdir,´´½¨´úÂë²Î¿¼createFile,Ö»¸Ä±äisDirection£¬sizeÉèÎª1
-			inode new_inode;
-			new_inode.addr = applyINode();
-			if (new_inode.addr == 0) {
-				cout << "There is no space for a new directory!" << endl;
-				return;
-			}
-			block_index = applyBlock();
-			if (block_index == 0) {
-				cout << "There is no space for a new directory!" << endl;
-				releaseINode(new_inode.addr);//¿Õ¼ä²»¹»¼ÇµÃÊÍ·ÅÒÑ·ÖÅäµÄinode
-				return;
-			}
-			else
-				this->sys_node.blockUsed++;
+		//å¦‚æœä¸å­˜åœ¨ï¼Œåˆ™è¦åˆ›å»ºä¸€ä¸ªæ–°çš„dir,åˆ›å»ºä»£ç å‚è€ƒcreateFile,åªæ”¹å˜isDirectionï¼Œsizeè®¾ä¸º1
+		inode new_inode;
+		new_inode.addr = applyINode();
+		if (new_inode.addr == 0) {
+			cout << "There is no space for a new directory!" << endl;
+			return;
 		}
+		block_index = applyBlock();
+		if (block_index == 0) {
+			cout << "There is no space for a new directory!" << endl;
+			releaseINode(new_inode.addr);//ç©ºé—´ä¸å¤Ÿè®°å¾—é‡Šæ”¾å·²åˆ†é…çš„inode
+			return;
+		}
+		else
+			this->sys_node.blockUsed++;
 		time(&new_inode.createTime);
 		new_inode.isDirection = true;
-		new_inode.parentAddr = dir;
-		new_inode.size = 1;//sizeÉèÖÃÎª1
+		new_inode.parentAddr = dir.addr;
+		new_inode.size = 1;//sizeè®¾ç½®ä¸º1
 		new_inode.directBlock[0] = block_index;
 		updateINode(new_inode);
-		add_file_node(dir, new_inode);//ÕâÀïÓÖÓĞÒ»¸öÎÊÌâ£¬¼ÓÈëµÄÊ±ºònameÃ»ÓĞÓÃµ½£¬ÔõÃ´¼ÓÈëÄØ
-	}//´´½¨ĞÂÄ¿Â¼³É¹¦
-	dir = new_inode;//ĞÂ½¨µÄÄ¿Â¼×÷ÎªÏÂÒ»¸öÇ¶Ì×µÄÄ¿Â¼
-}
-a = sm[0].second;
+		char* fname = get_create_file_name(pathname);
+		fileNode fnode(new_inode.addr, fname);
+		add_file_node(dir, fnode);
+		dir = new_inode;//æ–°å»ºçš„ç›®å½•ä½œä¸ºä¸‹ä¸€ä¸ªåµŒå¥—çš„ç›®å½• //åˆ›å»ºæ–°ç›®å½•æˆåŠŸ	
+		a = sm[0].second;
 	}//while
 }
 
 /*
-a. µİ¹é±éÀúÄ¿Â¼ÏÂµÄÄ¿Â¼ºÍÎÄ¼ş£¬°¤¸öÉ¾³ı
-b. ÊÍ·Å¿é¿Õ¼ä£¬É¾³ıinode½áµã£¬É¾³ı¸¸¼¶ÎÄ¼ş¼ĞÖĞµÄÃû³Æ
+a. é€’å½’éå†ç›®å½•ä¸‹çš„ç›®å½•å’Œæ–‡ä»¶ï¼ŒæŒ¨ä¸ªåˆ é™¤
+b. é‡Šæ”¾å—ç©ºé—´ï¼Œåˆ é™¤inodeç»“ç‚¹ï¼Œåˆ é™¤çˆ¶çº§æ–‡ä»¶å¤¹ä¸­çš„åç§°
 */
 void file_system::deleteDir(string path) {
-	inode dir = get_path_inode(path);//ÓÉÓÚÕâÀïpathÊÇÒ»¸öµØÖ·Ä¿Â¼£¬ËùÒÔÖ±½ÓÓÃget_path_inodeµÃµ½Ä¿Â¼;
-	if (this->current == dir) {
+	inode dir = get_path_inode(path);//ç”±äºè¿™é‡Œpathæ˜¯ä¸€ä¸ªåœ°å€ç›®å½•ï¼Œæ‰€ä»¥ç›´æ¥ç”¨get_path_inodeå¾—åˆ°ç›®å½•;
+	if (this->current.addr == dir.addr) {//è¿™é‡Œç›´æ¥ç”¨åœ°å€æ¥åˆ¤æ–­æ˜¯å¦ä¸ºåŒä¸€ä¸ªInode
 		cout << "Cannot delete current directory!" << endl;
 		return;
 	}
-	//ÕâÀïÅĞ¶ÏÊÇ·ñÔÚÄ¿Â¼ÀïÃæ£¬Èç¹ûpathÊÇµ±Ç°Â·¾¶µÄ×Ö´®£¬Ôò°üº¬µ±Ç°Ä¿Â¼£¬²»ÄÜÉ¾³ı
-	string current_path = get_path(this->current)£»
+	//è¿™é‡Œåˆ¤æ–­æ˜¯å¦åœ¨ç›®å½•é‡Œé¢ï¼Œå¦‚æœpathæ˜¯å½“å‰è·¯å¾„çš„å­—ä¸²ï¼Œåˆ™åŒ…å«å½“å‰ç›®å½•ï¼Œä¸èƒ½åˆ é™¤
+	string current_path = get_path(this->current);
 
-		if (current_path.find(path) == 0) {//¿¼ÂÇµ½ÖØÃûÎÊÌâ£¬Èç¹ûpathÊÇcurrent_path´ÓÍ·¿ªÊ¼µÄ×Ö´®
-			cout << "Cannot delete current directory!" << endl;
-			return;
-		}
+	if (current_path.find(path) == 0) {//è€ƒè™‘åˆ°é‡åé—®é¢˜ï¼Œå¦‚æœpathæ˜¯current_pathä»å¤´å¼€å§‹çš„å­—ä¸²
+		cout << "Cannot delete current directory!" << endl;
+		return;
+	}
 	inode file_inode;
 	list<fileNode> fileList = loadDir(dir);
 	list<fileNode>::iterator it;
-	for (it = fileList.begin(); i != fileList.end(); it++) {
-		file_inode = getINode(it.nodeAddr);
+	for (it = fileList.begin(); it != fileList.end(); it++) {
+		file_inode = getINode(it->nodeAddr);
 		if (file_inode.isDirection)
 			deleteDir(get_path(file_inode));
 		else
 			deleteFile(get_path(file_inode));
 	}
-	inode father_dir = getINode(dir.parentAddr);//È»ºóÊÍ·Å¸Ãinode½ÚµãÓëblock£¬É¾³ı¸¸Ä¿Â¼ÀïµÄĞÅÏ¢
+	inode father_dir = getINode(dir.parentAddr);//ç„¶åé‡Šæ”¾è¯¥inodeèŠ‚ç‚¹ä¸blockï¼Œåˆ é™¤çˆ¶ç›®å½•é‡Œçš„ä¿¡æ¯
 	int indirect_address;
 	if (dir.size <= 10) {
 		for (int i = 0; i < dir.size; i++) {
@@ -310,24 +341,24 @@ void file_system::deleteDir(string path) {
 			releaseBlock(dir.directBlock[i]);
 			releaseItem(dir.directBlock[i]);
 		}
-		for (int j = 0; j < dir.size - 10) {
-			indirect_address = get_indirect_block_index(dir->indirectBlock, j);
+		for (int j = 0; j < dir.size - 10; j++) {
+			indirect_address = get_indirect_block_index(dir.indirectBlock, j);
 			releaseBlock(indirect_address);
 			releaseItem(indirect_address);
 		}
 	}
-	char name[30];
+	char* name;
 	name = get_name(father_dir, dir);
-	releaseINode(dir->addr);
+	releaseINode(dir.addr);
 	delete_file_node(father_dir, name);
 }
 
-/*changeDirÃüÁî£¬ÒÆ¶¯¹¤×÷Ä¿Â¼
+/*changeDirå‘½ä»¤ï¼Œç§»åŠ¨å·¥ä½œç›®å½•
 */
-void fileSystem::changeDir(string path)
+void file_system::changeDir(string path)
 {
-	inode dir = get_path_inode(path);//ÕâÀïµÄpathÒ²ÊÇÒ»¸öÄ¿Â¼Â·¾¶,¶ÔÓÚpathÊÇ·ñºÏ·¨µÄÎÊÌâ½»¸øget_path_inodeº¯Êı
-	if (dir != NULL) {
+	inode dir = get_path_inode(path);//è¿™é‡Œçš„pathä¹Ÿæ˜¯ä¸€ä¸ªç›®å½•è·¯å¾„,å¯¹äºpathæ˜¯å¦åˆæ³•çš„é—®é¢˜äº¤ç»™get_path_inodeå‡½æ•°
+	if (dir.addr != NULL) {
 		this->current = dir;
 	}
 }
@@ -336,22 +367,22 @@ void file_system::listDir() {
 	inode file_inode;
 	list<fileNode> fileList = loadDir(this->current);
 	list<fileNode>::iterator it;
-	for (it = fileList.begin(); i != fileList.end(); it++) {
-		cout << it.name << "\t";
-		file_inode = getINode(it.nodeAddr);
+	for (it = fileList.begin(); it != fileList.end(); it++) {
+		cout << it->name << "\t";
+		file_inode = getINode(it->nodeAddr);
 		cout << "size: " << file_inode.size << "\t" << "create Time: " << file_inode.createTime << endl;
 	}
 }
 
 /*
-a. ÕÒµ½±»¸´ÖÆµÄinode£¬´´½¨Ò»¸ö¶ÔÏó£¬¸´ÖÆÆäÊôĞÔ£¨´´½¨Ê±¼äºÍĞŞ¸ÄÊ±¼ä²»¸´ÖÆ£©
-b. ÔÚ¸´ÖÆºóÂ·¾¶µÄ¸¸¼¶Ä¿Â¼ÉÏ¼ÇÂ¼ÎÄ¼şÃûºÍinodeµØÖ·
-Ô­À´ÎÄ¼şµÄinode:node,ĞèÒª¸´ÖÆµÄÂ·¾¶£ºdir
-ÕâÀï»¹ÓĞÒ»¸öÎÊÌâ£¬ËäÈ»·ÖÅäÁËblock,µ«ÒªÔõÑù°ÑblockÀïÃæµÄÄÚÈİ¸´ÖÆ¹ıÈ¥£¿£¿£¿
+a. æ‰¾åˆ°è¢«å¤åˆ¶çš„inodeï¼Œåˆ›å»ºä¸€ä¸ªå¯¹è±¡ï¼Œå¤åˆ¶å…¶å±æ€§ï¼ˆåˆ›å»ºæ—¶é—´å’Œä¿®æ”¹æ—¶é—´ä¸å¤åˆ¶ï¼‰
+b. åœ¨å¤åˆ¶åè·¯å¾„çš„çˆ¶çº§ç›®å½•ä¸Šè®°å½•æ–‡ä»¶åå’Œinodeåœ°å€
+åŸæ¥æ–‡ä»¶çš„inode:node,éœ€è¦å¤åˆ¶çš„è·¯å¾„ï¼šdir
+è¿™é‡Œè¿˜æœ‰ä¸€ä¸ªé—®é¢˜ï¼Œè™½ç„¶åˆ†é…äº†block,ä½†è¦æ€æ ·æŠŠblocké‡Œé¢çš„å†…å®¹å¤åˆ¶è¿‡å»ï¼Ÿï¼Ÿï¼Ÿ
 */
 void file_system::copy(string origin_path, string copy_path) {
 	inode node = get_path_inode(origin_path);
-	inode dir = get_path_inode_except_name(copy_path);//ÕâÀï°Ñcopy_pathµ±×÷Ò²´øÓĞÎÄ¼şÃû×ÖµÄÂ·¾¶
+	inode dir = get_path_inode_except_name(copy_path);//è¿™é‡ŒæŠŠcopy_pathå½“ä½œä¹Ÿå¸¦æœ‰æ–‡ä»¶åå­—çš„è·¯å¾„
 	inode new_inode;
 	new_inode.addr = applyINode();
 	if (new_inode.addr == 0) {
@@ -360,18 +391,18 @@ void file_system::copy(string origin_path, string copy_path) {
 	}
 	time(&new_inode.createTime);
 	new_inode.isDirection = node.isDirection;
-	new_inode.parentAddr = dir;
-	new_inode.size = node.size;//½ÓÏÂÀ´»¹ÒªÌí¼ÓµØÖ·£¬Ò²¾ÍÊÇ·ÖÅäblock
+	new_inode.parentAddr = dir.addr;
+	new_inode.size = node.size;//æ¥ä¸‹æ¥è¿˜è¦æ·»åŠ åœ°å€ï¼Œä¹Ÿå°±æ˜¯åˆ†é…block
 	int block_index;
 	list<int> address_list;
 	while (new_inode.size--) {
 		block_index = applyBlock();
 		this->sys_node.blockUsed++;
-		if (block_index == 0) {//Èç¹û¿Õ¼ä²»¹»
+		if (block_index == 0) {//å¦‚æœç©ºé—´ä¸å¤Ÿ
 			cout << "There is no space for a new file!" << endl;
-			releaseINode(new_inode.addr);//ÊÍ·Å·ÖÅäµÄinode½Úµã
-			list<int>::iterator it;//ÊÍ·Å·ÖÅäµÄblock
-			for (it = address_list.begin(), it != address_list.end(); it++) {
+			releaseINode(new_inode.addr);//é‡Šæ”¾åˆ†é…çš„inodeèŠ‚ç‚¹
+			list<int>::iterator it;//é‡Šæ”¾åˆ†é…çš„block
+			for (it = address_list.begin(); it != address_list.end(); it++) {
 				if (*it != 0) {
 					releaseBlock(*it);
 					this->sys_node.blockUsed--;
@@ -383,31 +414,53 @@ void file_system::copy(string origin_path, string copy_path) {
 		else {
 			address_list.push_back(block_index);
 		}
-		//»¹ĞèÒª°ÑÎÄ¼şÄÚÈİ¸´ÖÆ¹ıÈ¥£¬ÏÈ¶Áµ½bufferÀïÃæ£¬²»ÖªµÀ¶Ô²»¶Ô
-		File* fp = fopen(origin_path, 'r');
-		File* buffer;
-		fread(buffer, node.size, 1, fp);
-		fclose(fp);
-		File *fp1 = fopen(copy_path, 'w');
-		fwrite(buffer, node.size, 1, fp1);
-		fclose(fp1);
-
 	}
+	list<int>::iterator it;
 	if (new_inode.size <= 10) {
-		for (int i = 0; i < size; i++) {
-			new_inode.directBlock[i] = address_list[i];
+		int i = 0;
+		for (it = address_list.begin(); it != address_list.end(); it++) {
+			new_inode.directBlock[i] = *it;
+			i++;
+			if (i > new_inode.size) break;
 		}
 	}
 	else {
-		for (int i = 0; i < 10; i++) {
-			new_inode.directBlock[i] = address_list[i];
+		int i = 0;
+		for (it = address_list.begin(); it != address_list.end(); it++) {
+			new_inode.directBlock[i] = *it;
+			i++;
+			if (i > 10) {
+				new_inode.indirectBlock = add_indirect_block_index(new_inode.addr, i - 10, block_index);//è¿™é‡Œå¯èƒ½ç”¨é”™äº†ï¼ŒindirectBlockåªæœ‰ä¸€ä¸ªï¼Œæ€ä¹ˆå¯ä»¥é‡å¤èµ‹å€¼å‘¢ï¼Ÿ
+			}
 		}
-		for (int j = 0; j < node.size - 10) {
-			new_inode.indirectBlock = add_indirect_block_index(new_node.addr, j, block_index);//ÕâÀï¿ÉÄÜÓÃ´íÁË£¬indirectBlockÖ»ÓĞÒ»¸ö£¬ÔõÃ´¿ÉÒÔÖØ¸´¸³ÖµÄØ£¿
-		}
+		//for (int j = 0; j < new_inode.size - 10;j++) {
+		//	new_inode.indirectBlock = add_indirect_block_index(new_inode.addr, j, block_index);//è¿™é‡Œå¯èƒ½ç”¨é”™äº†ï¼ŒindirectBlockåªæœ‰ä¸€ä¸ªï¼Œæ€ä¹ˆå¯ä»¥é‡å¤èµ‹å€¼å‘¢ï¼Ÿ
+		//}
 		updateINode(new_inode);
-		add_file_node(dir, new_inode);//ÕâÀïÎŞ·¨¼ÓÈëÎÄ¼şÃû³Æ£¬£¬£¬
+		char* fname = get_create_file_name(copy_path);
+		fileNode fnode(new_inode.addr, fname);
+		add_file_node(dir, fnode);
 	}
+	int len = 0;
+	FILE *pIn = NULL;
+	FILE *pOut = NULL;
+	char buff[8192] = { 0 };//è¿™é‡Œçš„8192å‚è€ƒçš„æ˜¯https://blog.csdn.net/Primeprime/article/details/105515059
+	if ((pIn = fopen(origin_path.c_str(), "r")) == NULL)
+	{
+		printf("Open File %s Failed...\n", origin_path.c_str());
+		return;
+	}
+	if ((pOut = fopen(copy_path.c_str(), "w")) == NULL)
+	{
+		printf("Copy File Failed...\n");
+		return;
+	}
+	while ((len = fread(buff, sizeof(char), sizeof(buff), pIn)) > 0)
+	{
+		fwrite(buff, sizeof(char), len, pOut);
+	}
+	fclose(pOut);
+	fclose(pIn);
 }
 
 void file_system::sum() {
@@ -418,10 +471,21 @@ void file_system::sum() {
 
 
 void file_system::cat(string path) {
-	File *fp, *buffer;
-	fp = fopen(path, "r");//ÕâÀïÖ±½ÓĞ´path¿ÉÒÔÂğ? FILE *fopen(const char *filename, const char *mode)
-	inode node = get_path_inode(path);
-	fread(buffer, node.size, 1, fp);
-	cout << buffer << endl;//¿ÉÒÔÕâÑù´òÓ¡Âğ£¿²ËÄñÉÏ£º char buffer[20];printf(%s\n, buffer);µ«ÕâÊÇCÓïÑÔ°æ±¾µÄ
-	fclose(fp);
+	regex e1("(/\\w{1,30})+");//åˆ¤æ–­/dir/fileç±»å‹
+	regex e2("^.(/\\w{1,30})+");//åˆ¤æ–­./dir/fileç±»å‹ï¼šå³ä»å½“å‰ç›®å½•å¼€å§‹
+	if (!regex_match(path, e1) && !regex_match(path, e2)) {
+		cout << "Wrong path!" << endl;
+		return;
+	}
+	FILE *fp;
+	if ((fp = fopen(path.c_str(), "r")) == NULL)
+	{
+		printf("cat: can't open file %s\n", path.c_str());
+		return;
+	}
+	else
+	{
+		copyfile(stdout, fp);
+		fclose(fp);
+	}
 }
