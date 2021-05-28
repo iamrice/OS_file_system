@@ -12,6 +12,7 @@ struct fileNode
 {
 	unsigned short nodeAddr;//2B
 	char name[30];//30B
+
 	fileNode(unsigned short addr, char* fname) {
 		nodeAddr = addr;
 		strcpy(name, fname);
@@ -24,9 +25,11 @@ struct fileNode
 struct sysNode
 {
 	unsigned short inodeBitMap;//2B,地址单位是字节
-	unsigned short blockBitMap;//2B,bitmap 位置，地址单位是字节
-	unsigned short rootINode;//2B 第一个inode的位置
-	unsigned short blockUsed = 7;
+
+    unsigned short blockBitMap;//2B,bitmap 位置，地址单位是字节
+    unsigned short rootINode;//2B 第一个inode的位置
+	unsigned short blockUsed;
+
 };
 
 struct inodeBitMap
@@ -78,6 +81,7 @@ struct inode
 	inode() {
 		time(&createTime);
 		time(&lastModify);
+
 	}
 };
 
@@ -147,11 +151,13 @@ public:
 
 private:
 	int block_size = 1024;
+
 	int system_size = 1024 * 1024 * 16;
 	int block_num = 1024 * 16;
 	int block_bitmap_size = 1024 * 2;
 	int inode_in_block = 21;
 	int fileNode_in_block = 64;
+
 	const char* sysFile;
 	sysNode sys_node;
 	FILE *fp;
@@ -199,6 +205,7 @@ private:
 	***************/
 	int get_indirect_block_index(int addr, int block_count);
 	int add_indirect_block_index(int addr, int block_count, unsigned short block_index);
+
 
 	/***************
 	loadDir: 给定一个目录，inode，根据size去读取目录内容，整理成list。
