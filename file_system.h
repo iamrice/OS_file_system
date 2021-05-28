@@ -205,7 +205,7 @@ private:
 	add_indirect_block_index:
 	***************/
 	int get_indirect_block_index(int addr, int block_count);
-	int add_indirect_block_index(int addr, int block_count, unsigned short block_index);
+	void add_indirect_block_index(int addr, int block_count, unsigned short block_index);
 
 
 	/***************

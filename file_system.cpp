@@ -219,7 +219,7 @@ int file_system::get_indirect_block_index(int addr,int block_count){
 }
 
 
-int file_system::add_indirect_block_index(int addr,int block_count,unsigned short block_index){
+void file_system::add_indirect_block_index(int addr,int block_count,unsigned short block_index){
 	fp = fopen(this->sysFile, "r+");
 	fseek(fp,addr*block_size+block_count*sizeof(block_index),SEEK_SET);
 	fwrite(&block_index,sizeof(block_index),1,fp);

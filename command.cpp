@@ -1,4 +1,4 @@
-#include "pch.h"
+
 #include "file_system.h"
 
 #include <regex>
@@ -10,7 +10,7 @@ using namespace std;
 inode file_system::find_entry(inode dir, string file_name) {
 
 	inode node, null_node;
-	null_node.addr = NULL;
+	null_node.addr = 0;
 	list<fileNode> fileList = loadDir(dir);
 	list<fileNode>::iterator it;
 	for (it = fileList.begin(); it != fileList.end(); it++) {
@@ -29,7 +29,7 @@ inode file_system::find_entry(inode dir, string file_name) {
 inode file_system::get_path_inode(string pathname) {
 
 	inode node, dir, null_node;
-	null_node.addr = NULL;
+	null_node.addr = 0;
 	regex e1("(/\\w{1,30})+");//判断/dir/file类型
 	regex e2("^.(/\\w{1,30})+");//判断./dir/file类型：即从当前目录开始
 	if (!regex_match(pathname, e1) && !regex_match(pathname, e2)) {
@@ -51,7 +51,7 @@ inode file_system::get_path_inode(string pathname) {
 	while (regex_search(a, b, sm, e)) {
 		//cout << sm[0] << endl;
 		dir = find_entry(dir, sm[0]);
-		if (dir.addr == NULL) {//判断
+		if (dir.addr == 0) {//判断
 			cout << "Wrong path!" << endl;
 			return null_node;
 		}
@@ -79,7 +79,7 @@ char* file_system::get_create_file_name(string pathname) {
 
 	string filename = pathname.substr(index);
 	char file[30];
-	strcpy_s(file, filename.c_str());
+	strcpy(file, filename.c_str());
 	return file;//这里的字符串乱码问题还没解决！！！！！
 }
 
@@ -193,7 +193,7 @@ void file_system::createFile(string path, int size) {
 			new_inode.directBlock[i] = *it;
 			i++;
 			if (i > 10) {
-				new_inode.indirectBlock = add_indirect_block_index(new_inode.addr, i - 10, block_index);//这里可能用错了，indirectBlock只有一个，怎么可以重复赋值呢？
+				add_indirect_block_index(new_inode.indirectBlock, i - 10, block_index);//这里可能用错了，indirectBlock只有一个，怎么可以重复赋值呢？
 			}
 
 		}
@@ -267,7 +267,7 @@ void file_system::createDir(string pathname) {//这里需要支持嵌套的，
 	while (regex_search(a, b, sm, e)) {//
 		//cout << sm[0] << endl;
 		int block_index;
-		if (find_entry(dir, sm[0]).addr != NULL) {//如果下一个dir存在，继续往下找
+		if (find_entry(dir, sm[0]).addr != 0) {//如果下一个dir存在，继续往下找
 			dir = find_entry(dir, sm[0]);
 			a = sm[0].second;
 			continue;
@@ -358,7 +358,7 @@ void file_system::deleteDir(string path) {
 void file_system::changeDir(string path)
 {
 	inode dir = get_path_inode(path);//这里的path也是一个目录路径,对于path是否合法的问题交给get_path_inode函数
-	if (dir.addr != NULL) {
+	if (dir.addr != 0) {
 		this->current = dir;
 	}
 }
@@ -430,7 +430,7 @@ void file_system::copy(string origin_path, string copy_path) {
 			new_inode.directBlock[i] = *it;
 			i++;
 			if (i > 10) {
-				new_inode.indirectBlock = add_indirect_block_index(new_inode.addr, i - 10, block_index);//这里可能用错了，indirectBlock只有一个，怎么可以重复赋值呢？
+				add_indirect_block_index(new_inode.indirectBlock, i - 10, block_index);//这里可能用错了，indirectBlock只有一个，怎么可以重复赋值呢？
 			}
 		}
 		//for (int j = 0; j < new_inode.size - 10;j++) {
