@@ -1,64 +1,29 @@
 #include "file_system.h"
-#include<regex>
+
+#include <regex>
 using namespace std;
-
-
-inode find_entry(inode dir, string file_name) {}//在父目录里根据文件名字找到对应的Inode
-
-inode get_path_inode(string pathname) {}//给出一个路径，返回路径指向的inode节点
-									  //对于路径 / dir / file 返回指向file的inode节点
-
-inode get_path_inode_except_name(string pathname) {}//给出一个路径，返回路径上一层目录的inode节点（即除去文件的路径inode）
-												   //对于路径 / dir / file 返回指向dir的inode节点
-
-char* get_create_file_name(string pathname) {}//专门用于创建文件和文件夹, copy，但是暂时还没用到过
-
-char* get_name(inode dir, inode file_inode) {} // 根据file_inode和dir得到该文件的名字；
-
-string get_path(inode file_inode) {}//根据file_inode得到文件/目录的路径
-
-void file_system::createFile(string path, int) {}
-
-void file_system::deleteFile(string path) {}
-
-void file_system::createDir(string path) {}
-
-void file_system::deleteDir(string path) {}
-
-void file_system::changeDir(string path) {}//分两种情况：./:当前目录开始，/:从根目录开始
-
-void file_system::listDir() {}
-
-void file_system::copy(string origin_path, string copy_path) {}
-
-void file_system::sum() {}
-
-void file_system::cat(string path) {}
-
-//突然想起来我们没有设定lastModify，因为根本就没有要改变文件内容的函数
 
 /*
 在父目录里根据文件名字找到对应的Inode
 */
-inode find_entry(inode dir, string file_name) {
+inode file_system::find_entry(inode dir, string file_name) {
 	inode node;
 	list<fileNode> fileList = loadDir(dir);
 	list<fileNode>::iterator it;
-	for (it = fileList.begin(); i != fileList.end(); it++) {
-		if (it.name == file_name)
+	for (it = fileList.begin(); it != fileList.end(); it++) {
+		if (it->name == file_name)
 		{
-			node = getINode(it.nodeAddr);
+			node = getINode(it->nodeAddr);
 			return node;
 		}
-		return NULL;//这里这样可以吗？感觉怪怪的
 	}
-
+	return node;//这里这样可以吗？感觉怪怪的
 }
 
 /*给出一个路径，返回路径指向的inode节点
 对于路径 /dir/file 返回指向file的inode节点
 */
-inode get_path_inode(string pathname) {
+inode file_system::get_path_inode(string pathname) {
 	inode node, dir;
 	regex e1("(\/\\w{1,30})+");//判断/dir/file类型
 	regex e2("^.(\/\\w{1,30})+");//判断./dir/file类型：即从当前目录开始
@@ -94,13 +59,13 @@ inode get_path_inode(string pathname) {
 /*给出一个路径，返回路径上一层目录的inode节点（即除去文件的路径inode）
 对于路径 /dir/file 返回指向dir的inode节点
 */
-inode get_path_inode_except_name(string pathname) {
+inode file_system::get_path_inode_except_name(string pathname) {
 	size_t index = pathname.find_last_of("\/");
 	pathname = pathname.erase(index);
 	return get_path_inode(pathname);
 }
 //专门用于创建文件和文件夹两个函数；,copy，但是暂时还没用到过
-char* get_create_file_name(string pathname) {
+char* file_system::get_create_file_name(string pathname) {
 	size_t index = pathname.find_last_of("\/");
 	string filename = pathname.substr(index);
 	char file[30];
@@ -109,23 +74,23 @@ char* get_create_file_name(string pathname) {
 }
 
 //根据file_inode和dir得到该文件的名字；
-char* get_name(inode dir, inode file_inode) {
+char* file_system::get_name(inode dir, inode file_inode) {
 	list<fileNode> fileList = loadDir(dir);
 	list<fileNode>::iterator it;
-	for (it = fileList.begin(); i != fileList.end(); it++) {
-		if (file_inode.addr = it.nodeAddr)
-			return  it.name;
+	for (it = fileList.begin(); it != fileList.end(); it++) {
+		if (file_inode.addr = it->nodeAddr)
+			return  it->name;
 	}
 }
 
 //根据file_inode得到文件/目录的路径
-string get_path(inode file_inode) {//path用string filename用char*
+string file_system::get_path(inode file_inode) {//path用string filename用char*
 	string path;
 	string s = "/";
-	inode dir = getINode(file_inode.parentAddr)
+	inode dir = getINode(file_inode.parentAddr);
 		s.append(get_name(dir, file_inode));
 	path.insert(0, s);
-	while (dir != getINode((this->sysnode).rootINode)) {
+	while (dir != getINode((this->sys_node).rootINode)) {
 		file_inode = dir;
 		dir = getINode(file_inode.parentAddr);
 		s = "/";
@@ -159,7 +124,7 @@ cout << "inode " << sizeof(inode) << " " << sizeof(inodeBitMap) << " sysnode " <
 	updateINode(b);
 	cout << b.to_string();
 */
-void fileSystem::createFile(string path, int size) {
+void file_system::createFile(string path, int size) {
 	inode dir = get_path_inode_except_name(path);
 	//fileNode dirFileNode;                 
 	inode new_inode;
@@ -203,7 +168,7 @@ void fileSystem::createFile(string path, int size) {
 		for (int i = 0; i < 10; i++) {
 			new_inode.directBlock[i] = address_list[i];
 		}
-		for (int j = 0; j < node.size - 10) {
+		for (int j = 0; j < node.size - 10;j++) {
 			new_inode.indirectBlock = add_indirect_block_index(new_node.addr, j, block_index);//这里可能用错了，indirectBlock只有一个，怎么可以重复赋值呢？
 		}
 		updateINode(new_inode);
@@ -248,7 +213,7 @@ void file_system::deleteFile(string path) {
 
 /*
 */
-void fileSystem::createDir(string path, int size) {//这里需要支持嵌套的，
+void file_system::createDir(string path, int size) {//这里需要支持嵌套的，
 	inode dir;
 	regex e1("(\/\\w{1,30})+");//判断/dir/file类型
 	regex e2("^.(\/\\w{1,30})+");//判断./dir/file类型：即从当前目录开始

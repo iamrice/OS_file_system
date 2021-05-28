@@ -53,6 +53,7 @@ void file_system::createFileSystem(){
 	updateINode(root);
 	cout<<root.to_string();
 	sys_node.rootINode = root.addr;
+	sys_node.blockUsed = 7;
 
 	fp = fopen(this->sysFile, "r+");
 	fseek(fp, 0, SEEK_SET);
@@ -115,7 +116,7 @@ void file_system::releaseBlock(unsigned int blockId){
 	setBitMap(blockAddr, offset , false);
 }
 
-void file_system::releaseItem(unsigned int blockId, unsigned int offset){
+void file_system::releaseItem(unsigned int blockId){
 	int offset = this->sys_node.blockBitMap + this->sys_node.rootINode + this->sys_node.inodeBitMap + blockId * block_size;
 	fp = fopen(this->sysFile, "r+");
 	fseek(fp, offset,SEEK_SET);

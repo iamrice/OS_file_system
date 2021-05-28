@@ -12,6 +12,13 @@ struct fileNode
 {
 	unsigned short nodeAddr;//2B
 	char name[30];//30B
+	fileNode(unsigned short addr,char* fname){
+		nodeAddr=addr;
+		strcpy(name,fname);
+	}
+	fileNode(){
+		nodeAddr=0;
+	}
 };
 
 struct sysNode
@@ -19,10 +26,7 @@ struct sysNode
 	unsigned short inodeBitMap;//2B,地址单位是字节
     unsigned short blockBitMap;//2B,bitmap 位置，地址单位是字节
     unsigned short rootINode;//2B 第一个inode的位置
-
-	unsigned short blockUsed = 7;
-
-	
+	unsigned short blockUsed;
 };
 
 struct inodeBitMap
@@ -72,8 +76,8 @@ struct inode
 		return ss.str();
 	}
 	inode(){
-		time(&createTime);
-		time(&lastModify);
+		std::time(&createTime);
+		std::time(&lastModify);
 	}
 };
 
@@ -147,6 +151,7 @@ private:
 	int block_num=1024*16;
 	int block_bitmap_size=1024*2;
 	int inode_in_block=21;
+	int fileNode_in_block=64;
 	const char* sysFile;
 	sysNode sys_node; 
 	FILE *fp;
@@ -177,7 +182,7 @@ private:
 	*/
 	unsigned int applyBlock();
 	void releaseBlock(unsigned int addr);
-	void releaseItem(unsigned int blockId, unsigned int id);
+	void releaseItem(unsigned int blockId);
 	/***************
 	getINode: 根据地址在文件中读取内容，转为inode结构
 	updateINode：将INode重新写入文件
@@ -188,10 +193,32 @@ private:
 	void updateINode(inode node);
 	void releaseINode(unsigned short blockId);
 
+
+	/***************
+	get_indirect_block_index: 
+	add_indirect_block_index:
+	***************/
+	int get_indirect_block_index(int addr,int block_count);
+	int add_indirect_block_index(int addr,int block_count,unsigned short block_index);
+
 	/***************
 	loadDir: 给定一个目录，inode，根据size去读取目录内容，整理成list。
+	add_file_node:
+	delete_file_node:
 	***************/
-	void loadDir(inode* dirNode,std::list<fileNode>* list);
+	std::list<fileNode> loadDir(inode dirNode);
+	void add_file_node(inode dirNode,fileNode new_node);
+	void delete_file_node(inode dirNode,char* file_name);
+
+
+	inode find_entry(inode dir, std::string file_name);//在父目录里根据文件名字找到对应的Inode
+	inode get_path_inode(std::string pathname);//给出一个路径，返回路径指向的inode节点
+										  //对于路径 / dir / file 返回指向file的inode节点
+	inode get_path_inode_except_name(std::string pathname);//给出一个路径，返回路径上一层目录的inode节点（即除去文件的路径inode）
+													   //对于路径 / dir / file 返回指向dir的inode节点
+	char* get_create_file_name(std::string pathname);//专门用于创建文件和文件夹, copy，但是暂时还没用到过
+	char* get_name(inode dir, inode file_inode); // 根据file_inode和dir得到该文件的名字；
+	std::string get_path(inode file_inode);//根据file_inode得到文件/目录的路径
 
 };
 #endif
