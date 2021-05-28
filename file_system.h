@@ -12,30 +12,34 @@ struct fileNode
 {
 	unsigned short nodeAddr;//2B
 	char name[30];//30B
+	fileNode(unsigned short addr, char* fname) {
+		nodeAddr = addr;
+		strcpy(name, fname);
+	}
+	fileNode() {
+		nodeAddr = 0;
+	}
 };
 
 struct sysNode
 {
 	unsigned short inodeBitMap;//2B,地址单位是字节
-    unsigned short blockBitMap;//2B,bitmap 位置，地址单位是字节
-    unsigned short rootINode;//2B 第一个inode的位置
-
+	unsigned short blockBitMap;//2B,bitmap 位置，地址单位是字节
+	unsigned short rootINode;//2B 第一个inode的位置
 	unsigned short blockUsed = 7;
-
-	
 };
 
 struct inodeBitMap
 {
 	char bitmap[4];			//4B
 	unsigned short addr;	//2B
-	std::string to_string(){
+	std::string to_string() {
 		std::stringstream ss;
 		ss.str("");
-		ss<<"--------inodeBitMap---------"<<"\n";
-		ss<<"addr "<<addr<<"\n";
-		ss<<std::hex<<int(bitmap[0])<<" "<<int(bitmap[1])<<" "<<int(bitmap[2])<<" "<<int(bitmap[3])<<"\n";
-		ss<<"----------------------------"<<"\n";
+		ss << "--------inodeBitMap---------" << "\n";
+		ss << "addr " << addr << "\n";
+		ss << std::hex << int(bitmap[0]) << " " << int(bitmap[1]) << " " << int(bitmap[2]) << " " << int(bitmap[3]) << "\n";
+		ss << "----------------------------" << "\n";
 		return ss.str();
 	}
 
@@ -48,30 +52,30 @@ struct inode
 	unsigned short parentAddr;		//2B
 	unsigned short size;			//2B
 	unsigned short indirectBlock = 0;//2B
-	unsigned short directBlock[10]={0};	//20B
+	unsigned short directBlock[10] = { 0 };	//20B
 	time_t lastModify;				//8B
 	time_t createTime;				//8B
-	std::string to_string(){
+	std::string to_string() {
 		std::stringstream ss;
 		ss.str("");
-		ss<<"--------inode---------"<<"\n";
-		ss<<"addr "<<addr<<"\n";
-		ss<<"parentAddr "<<parentAddr<<"\n";
-		ss<<"isDirection "<<isDirection<<"\n";
-		ss<<"size "<<size<<"\n";
-		ss<<"createTime "<<createTime<<"\n";
-		ss<<"lastModify "<<lastModify<<"\n";
-		for(int i=0;i<10;i++){
-			if(directBlock[i]==0)
+		ss << "--------inode---------" << "\n";
+		ss << "addr " << addr << "\n";
+		ss << "parentAddr " << parentAddr << "\n";
+		ss << "isDirection " << isDirection << "\n";
+		ss << "size " << size << "\n";
+		ss << "createTime " << createTime << "\n";
+		ss << "lastModify " << lastModify << "\n";
+		for (int i = 0; i < 10; i++) {
+			if (directBlock[i] == 0)
 				break;
-			ss<<"direct block "<<i<<": "<<directBlock[i]<<"\n";
+			ss << "direct block " << i << ": " << directBlock[i] << "\n";
 		}
-		if(indirectBlock>0)
-			ss<<"indirectBlock: "<<indirectBlock<<"\n";
-		ss<<"---------------------"<<"\n";
+		if (indirectBlock > 0)
+			ss << "indirectBlock: " << indirectBlock << "\n";
+		ss << "---------------------" << "\n";
 		return ss.str();
 	}
-	inode(){
+	inode() {
 		time(&createTime);
 		time(&lastModify);
 	}
@@ -100,7 +104,7 @@ public:
 		b. 删除inode
 		c. 删除父级文件夹中的名称
 	*******************/
-	void createFile(std::string,int);
+	void createFile(std::string, int);
 	void deleteFile(std::string);
 
 	/******************
@@ -133,7 +137,7 @@ public:
 		a. 查看空闲块的情况，具体方法要取决于管理空闲块
 	*******************/
 
-	void copy(std::string,std::string);
+	void copy(std::string, std::string);
 	void cat(std::string);
 	void sum();
 
@@ -143,23 +147,23 @@ public:
 
 private:
 	int block_size = 1024;
-	int system_size=1024*1024*16;
-	int block_num=1024*16;
-	int block_bitmap_size=1024*2;
-	int inode_in_block=21;
+	int system_size = 1024 * 1024 * 16;
+	int block_num = 1024 * 16;
+	int block_bitmap_size = 1024 * 2;
+	int inode_in_block = 21;
+	int fileNode_in_block = 64;
 	const char* sysFile;
-	sysNode sys_node; 
+	sysNode sys_node;
 	FILE *fp;
-
+	inode current = this->getINode(sys_node.rootINode);
 	unsigned int blockFree;//空闲块数量
-
 	unsigned char* blockBitmap;
 	/***************
 	createFileSystem: 当系统第一次运行时调用，创建16MB 的文件，并初始化bitmap和根目录结点，初始化第一个inodebitmap
 	openFileSystem: 当系统文件已存在时调用，载入系统内容。
 	***************/
-    void createFileSystem();
-    void openFileSystem();
+	void createFileSystem();
+	void openFileSystem();
 
 	/***************
 	loadBitMap\dumpBitMap:
@@ -170,14 +174,14 @@ private:
 		b. 在申请空间时查找空闲块，返回地址并标记为已占用
 		c. 在释放空间时将块标记为空闲
 	***************/
-	void setBitMap(unsigned short addr,int offset, bool bit);
+	void setBitMap(unsigned short addr, int offset, bool bit);
 	/*
 	void loadBitMap(unsigned short addr);
 	void dumpBitMap(unsigned short addr);
 	*/
 	unsigned int applyBlock();
 	void releaseBlock(unsigned int addr);
-	void releaseItem(unsigned int blockId, unsigned int id);
+	void releaseItem(unsigned int blockId);
 	/***************
 	getINode: 根据地址在文件中读取内容，转为inode结构
 	updateINode：将INode重新写入文件
@@ -188,10 +192,32 @@ private:
 	void updateINode(inode node);
 	void releaseINode(unsigned short blockId);
 
+
+	/***************
+	get_indirect_block_index:
+	add_indirect_block_index:
+	***************/
+	int get_indirect_block_index(int addr, int block_count);
+	int add_indirect_block_index(int addr, int block_count, unsigned short block_index);
+
 	/***************
 	loadDir: 给定一个目录，inode，根据size去读取目录内容，整理成list。
+	add_file_node:
+	delete_file_node:
 	***************/
-	void loadDir(inode* dirNode,std::list<fileNode>* list);
+	std::list<fileNode> loadDir(inode dirNode);
+	void add_file_node(inode dirNode, fileNode new_node);
+	void delete_file_node(inode dirNode, char* file_name);
 
+
+	inode find_entry(inode dir, std::string file_name);//在父目录里根据文件名字找到对应的Inode
+	inode get_path_inode(std::string pathname);//给出一个路径，返回路径指向的inode节点
+										  //对于路径 / dir / file 返回指向file的inode节点
+	inode get_path_inode_except_name(std::string pathname);//给出一个路径，返回路径上一层目录的inode节点（即除去文件的路径inode）
+													   //对于路径 / dir / file 返回指向dir的inode节点
+	char* get_create_file_name(std::string pathname);//专门用于创建文件和文件夹, copy，但是暂时还没用到过
+	char* get_name(inode dir, inode file_inode); // 根据file_inode和dir得到该文件的名字；
+	std::string get_path(inode file_inode);//根据file_inode得到文件/目录的路径
+	void copyfile(FILE*to, FILE*from);
 };
 #endif
