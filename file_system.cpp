@@ -208,7 +208,129 @@ void file_system::releaseINode(unsigned short addr){
 	setBitMap(node_addr + 2 + offset / 8, offset % 8, false);
 }
 
-void file_system::loadDir(inode* dirNode,list<fileNode>* list){}
+int file_system::get_indirect_block_index(int addr,int block_count){
+	fp = fopen(this->sysFile, "r");
+	unsigned short block_index;
+	fseek(fp,addr*block_size+block_count*sizeof(block_index),SEEK_SET);
+	fread(&block_index,sizeof(block_index),1,fp);
+	fclose(fp);
+	return block_index;
+}
+
+
+int file_system::add_indirect_block_index(int addr,int block_count,unsigned short block_index){
+	fp = fopen(this->sysFile, "r+");
+	fseek(fp,addr*block_size+block_count*sizeof(block_index),SEEK_SET);
+	fwrite(&block_index,sizeof(block_index),1,fp);
+	fclose(fp);
+}
+
+list<fileNode> file_system::loadDir(inode dirNode){
+	list<fileNode> list;
+	int block_count=0;
+	while(block_count<dirNode.size){
+		int block_index;
+		if(block_count<10){
+			block_index=dirNode.directBlock[block_count];
+		}else{
+			block_index=get_indirect_block_index(dirNode.indirectBlock,block_count-10);
+		}
+		block_count++;
+
+		fp = fopen(this->sysFile, "r");
+		for(int i=0;i<fileNode_in_block;i++){
+			fseek(fp, block_index*block_size+i*sizeof(fileNode), SEEK_SET);
+			fileNode node;
+			fread(&node,sizeof(node),1,fp);
+			if(node.nodeAddr!=0){
+				list.push_back(node);
+			}
+		}
+		fclose(fp);
+	}
+
+	return list;
+}
+
+
+void file_system::add_file_node(inode dirNode,fileNode new_node){
+	int block_count=0;
+	int new_block_index;
+	while(block_count<dirNode.size){
+		int block_index;
+		if(block_count<10){
+			block_index=dirNode.directBlock[block_count];
+		}else{
+			block_index=get_indirect_block_index(dirNode.indirectBlock,block_count-10);
+		}
+		block_count++;
+
+		fp = fopen(this->sysFile, "r+");
+		for(int i=0;i<fileNode_in_block;i++){
+			fseek(fp, block_index*block_size+i*sizeof(fileNode), SEEK_SET);
+			fileNode node;
+			fread(&node,sizeof(node),1,fp);
+			if(node.nodeAddr==0){
+				fseek(fp, block_index*block_size+i*sizeof(fileNode), SEEK_SET);
+				fwrite(&new_node,sizeof(new_node),1,fp);
+				fclose(fp);
+				goto success;
+			}
+		}
+		fclose(fp);
+	}
+	fail:
+	new_block_index=applyBlock();
+	if(dirNode.size<10){
+		dirNode.directBlock[dirNode.size]=new_block_index;
+	}else{
+		fp = fopen(this->sysFile, "r+");
+		fseek(fp,dirNode.indirectBlock*block_size+(dirNode.size-10)*sizeof(new_block_index),SEEK_SET);
+		fwrite(&new_block_index,sizeof(new_block_index),1,fp);
+		fclose(fp);
+	}
+	dirNode.size++;
+	updateINode(dirNode);
+
+	fp = fopen(this->sysFile, "r+");
+	fseek(fp,new_block_index*block_size,SEEK_SET);
+	fwrite(&new_node,sizeof(new_node),1,fp);
+	fclose(fp);
+
+	success:
+	return;
+}
+
+void file_system::delete_file_node(inode dirNode,char* file_name){
+	int block_count=0;
+	while(block_count<dirNode.size){
+		int block_index;
+		if(block_count<10){
+			block_index=dirNode.directBlock[block_count];
+		}else{
+			block_index=get_indirect_block_index(dirNode.indirectBlock,block_count-10);
+		}
+		block_count++;
+
+		fp = fopen(this->sysFile, "r");
+		for(int i=0;i<fileNode_in_block;i++){
+			fseek(fp, block_index*block_size+i*sizeof(fileNode), SEEK_SET);
+			fileNode node;
+			fread(&node,sizeof(node),1,fp);
+			if(node.nodeAddr!=0 && strcmp(node.name,file_name)==0){
+				node.nodeAddr=0;
+				fseek(fp, block_index*block_size+i*sizeof(fileNode), SEEK_SET);
+				fwrite(&node,sizeof(node),1,fp);
+				fclose(fp);
+				goto success;
+			}
+		}
+		fclose(fp);
+	}
+	success:
+	return;
+}
+//test
 
 void file_system::test() {
 	cout<<"inode "<<sizeof(inode)<<" "<<sizeof(inodeBitMap)<<"\n";
