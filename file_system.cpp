@@ -97,15 +97,22 @@ unsigned int file_system::applyBlock(){
 		blockAd += i;
 		fseek(fp, blockAd, SEEK_SET);
 		int n = fgetc(fp);
-		if (!n)
+		int temp = 1; 
+		for (int j = 1; j <= 7; j++)
 		{
-			ans = i;
-			break;
+			if (n&temp == 0)
+			{
+				ans = j * (i + 1);
+				goto success;
+			}
+			else
+				temp <<= j;
 		}
 	}
-	if(ans == -1) 
-	    return 0;
-	else return ans;
+
+success:
+	fclose(fp);
+	return ans;
 }
 
 
@@ -115,7 +122,7 @@ void file_system::releaseBlock(unsigned int blockId){
 	setBitMap(blockAddr, offset , false);
 }
 
-void file_system::releaseItem(unsigned int blockId, unsigned int offset){
+void file_system::releaseItem(unsigned int blockId){
 	int offset = this->sys_node.blockBitMap + this->sys_node.rootINode + this->sys_node.inodeBitMap + blockId * block_size;
 	fp = fopen(this->sysFile, "r+");
 	fseek(fp, offset,SEEK_SET);
