@@ -3,11 +3,10 @@
 #include<cstdio>
 using namespace std;
 
-const char* command[] = { "help","createFile","deleteFile","createDir","dir","cp","sum","cat","exit" };
+const char* command[] = { "help","createFile","deleteFile","createDir","deleteDir","changeDir","dir","cp","sum","cat","exit" };
 
 int main(){
 	file_system system;
-	//system.test();
 	
 	char Command[30],name[30];
 	int Com = -1,fileSize;
@@ -15,22 +14,21 @@ int main(){
 	
 	while(true){
 		printf("FileSystem@fileSystem:");
-		scanf("%s", command);
+		scanf("%s", Command);
 
-		for (int i = 0; i < 9; i++) {
+		for (int i = 0; i < 10; i++) {
 			if (!strcmp(Command, command[i])) {
 				Com = i;
 				break;
 			}
 		}
-		printf("FileSystem@fileSystem:");
 
 		switch (Com) {
 			case 0:
 				system.help();
 				break;
 			case 1:
-				scanf("%s%d", name, fileSize);
+				scanf("%s%d", name, &fileSize);
 				system.createFile(name, fileSize);
 				break;
 			case 2:
@@ -66,6 +64,9 @@ int main(){
 				break;
 			case 10:
 				exit = 1;
+				break;
+			default:
+				exit=1;
 				break;
 		}
 			

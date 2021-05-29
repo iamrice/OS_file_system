@@ -26,7 +26,7 @@ file_system::~file_system(){}
 
 void file_system::createFileSystem(){
 	fp = fopen(this->sysFile, "w");
-	fseek(fp,1024*16-1,SEEK_SET);
+	fseek(fp,1024*1024*16-1,SEEK_SET);
 	char end=EOF;
 	fwrite(&end,1,1,fp);
 	fclose(fp);
@@ -50,7 +50,7 @@ void file_system::createFileSystem(){
 	root.parentAddr = root.addr;
 	root.isDirection = true;
 	root.size = 0;
-	updateINode(root);
+	updateINode(&root);
 	cout<<root.to_string();
 	sys_node.rootINode = root.addr;
 	sys_node.blockUsed = 7;
@@ -92,51 +92,21 @@ void file_system::setBitMap(unsigned short addr,int offset, bool bit) {
 //unsigned short file_system::getAvaiableBlock(unsigned short addr, ) {}
 
 unsigned int file_system::applyBlock(){
-	if (this->sys_node.blockUsed >= block_num) {
-		return 0;
-	}
-	int blockAd = this->sys_node.rootINode;
-	int ans = -1;
-	for (int i = 0; i < block_bitmap_size; i++)
-	{
-		blockAd += i;
-		fseek(fp, blockAd, SEEK_SET);
-		int n = fgetc(fp);
-		int temp = 1; 
-		for (int j = 1; j <= 7; j++)
-		{
-			if (n&temp == 0)
-			{
-				ans = j * (i + 1);
-				goto success;
-			}
-			else
-				temp <<= j;
-		}
-	}
-	
-	if(ans == -1) 
-	    return 0;
-	else{
-		this->sys_node.blockUsed++;
-		writeItem(ans);
-		return ans;
-	}
-
+	return 7;
 }
 
 
 void file_system::releaseBlock(unsigned int blockId){
-	int blockAddr = blockId / 8 + this->sys_node.rootINode;
+	int blockAddr = blockId / 8 + this->sys_node.blockBitMap;
 	int offset = blockId % 8;
 	setBitMap(blockAddr, offset , false);
 }
 
 void file_system::releaseItem(unsigned int blockId){
-	int offset = this->sys_node.blockBitMap + this->sys_node.rootINode + this->sys_node.inodeBitMap + blockId * block_size;
+	int offset = blockId * block_size;
 	fp = fopen(this->sysFile, "r+");
 	fseek(fp, offset,SEEK_SET);
-	for (int i = 0; i < block_num; i++)
+	for (int i = 0; i < block_size; i++)
 	{
 		fputc(0, fp);
 	}
@@ -213,7 +183,7 @@ success:
 	return nodeIndex;
 }
 
-inode file_system::getINode(unsigned short addr){
+inode* file_system::getINode(unsigned short addr){
 	fp = fopen(this->sysFile, "r+");
 	inodeBitMap map;
 	int offset = this->sys_node.inodeBitMap + (addr / inode_in_block) * sizeof(inodeBitMap);
@@ -227,22 +197,22 @@ inode file_system::getINode(unsigned short addr){
 	fread(&node, sizeof(node), 1, fp);
 	fclose(fp);
 
-	return node;
+	return &node;
 }
 
-void file_system::updateINode(inode node){
+void file_system::updateINode(inode* node){
 	fp = fopen(this->sysFile, "r+");
 	inodeBitMap map;
-	int offset = this->sys_node.inodeBitMap + (node.addr/inode_in_block)*sizeof(inodeBitMap);
+	int offset = this->sys_node.inodeBitMap + (node->addr/inode_in_block)*sizeof(inodeBitMap);
 	fseek(fp, offset, SEEK_SET);
 	fread(&map, sizeof(map), 1, fp);
 
 
-	int offset2 = map.addr * block_size + (node.addr % inode_in_block) * sizeof(inode);
+	int offset2 = map.addr * block_size + (node->addr % inode_in_block) * sizeof(inode);
 
 	//cout<<"updateINode "<<map.addr<<" "<<map.bitmap<<" "<<offset2<<endl;
 	fseek(fp, offset2, SEEK_SET);
-	fwrite(&node, sizeof(node), 1, fp);
+	fwrite(node, sizeof((*node)), 1, fp);
 
 	fclose(fp);
 }
@@ -270,15 +240,15 @@ void file_system::add_indirect_block_index(int addr,int block_count,unsigned sho
 	fclose(fp);
 }
 
-list<fileNode> file_system::loadDir(inode dirNode){
+list<fileNode> file_system::loadDir(inode *dirNode){
 	list<fileNode> list;
 	int block_count=0;
-	while(block_count<dirNode.size){
+	while(block_count<dirNode->size){
 		int block_index;
 		if(block_count<10){
-			block_index=dirNode.directBlock[block_count];
+			block_index=dirNode->directBlock[block_count];
 		}else{
-			block_index=get_indirect_block_index(dirNode.indirectBlock,block_count-10);
+			block_index=get_indirect_block_index(dirNode->indirectBlock,block_count-10);
 		}
 		block_count++;
 
@@ -298,15 +268,15 @@ list<fileNode> file_system::loadDir(inode dirNode){
 }
 
 
-void file_system::add_file_node(inode dirNode,fileNode new_node){
+void file_system::add_file_node(inode* dirNode,fileNode new_node){
 	int block_count=0;
 	int new_block_index;
-	while(block_count<dirNode.size){
+	while(block_count<dirNode->size){
 		int block_index;
 		if(block_count<10){
-			block_index=dirNode.directBlock[block_count];
+			block_index=dirNode->directBlock[block_count];
 		}else{
-			block_index=get_indirect_block_index(dirNode.indirectBlock,block_count-10);
+			block_index=get_indirect_block_index(dirNode->indirectBlock,block_count-10);
 		}
 		block_count++;
 
@@ -326,15 +296,15 @@ void file_system::add_file_node(inode dirNode,fileNode new_node){
 	}
 	fail:
 	new_block_index=applyBlock();
-	if(dirNode.size<10){
-		dirNode.directBlock[dirNode.size]=new_block_index;
+	if(dirNode->size<10){
+		dirNode->directBlock[dirNode->size]=new_block_index;
 	}else{
 		fp = fopen(this->sysFile, "r+");
-		fseek(fp,dirNode.indirectBlock*block_size+(dirNode.size-10)*sizeof(new_block_index),SEEK_SET);
+		fseek(fp,dirNode->indirectBlock*block_size+(dirNode->size-10)*sizeof(new_block_index),SEEK_SET);
 		fwrite(&new_block_index,sizeof(new_block_index),1,fp);
 		fclose(fp);
 	}
-	dirNode.size++;
+	dirNode->size++;
 	updateINode(dirNode);
 
 	fp = fopen(this->sysFile, "r+");
@@ -379,12 +349,12 @@ void file_system::delete_file_node(inode dirNode,char* file_name){
 
 void file_system::catFile(inode file){
 	int block_count=0;
-	while(block_count<dirNode.size){
+	while(block_count<file.size){
 		int block_index;
 		if(block_count<10){
-			block_index=dirNode.directBlock[block_count];
+			block_index=file.directBlock[block_count];
 		}else{
-			block_index=get_indirect_block_index(dirNode.indirectBlock,block_count-10);
+			block_index=get_indirect_block_index(file.indirectBlock,block_count-10);
 		}
 		block_count++;
 
@@ -408,22 +378,22 @@ void file_system::test() {
 	b.addr=applyINode();
 	b.parentAddr=a.addr;
 	b.isDirection=false;
-	updateINode(b);
+	updateINode(&b);
 	cout<<b.to_string();
+
+	/**********************
+	测试单元：
+	1. 系统初始化
+	2. 创建一个文件，读取文件内容
+	3. 创建一个文件夹
+	4. 将2中的文件复制到3中的文件夹，列出该目录内容
+	4.5 重启文件系统
+	5. 删除2中的文件
+	6. 删除3中的文件夹
+	**********************/
+
 }
 
 void file_system::help()
 {
-	printf("command: \n\
-    help       ---  show help menu \n\
-    createFile ---  Create a file: createFile fileName fileSize \n\
-    deleteFile ---  Delete a file: deleteFile fileName \n\
-    createDir  ---  Create a directory：createDir directoryPath \n\
-    deleteDir  ---  Delete a directory: deleteDir directoryPath \n\
-    changeDir  ---  Change current working direcotry:changeDir path \n\
-    dir        ---  List all the files and sub-directories under current working directory \n\
-    cp         ---  Copy a file: cp file1 file2 \n\
-    sum        ---  Display the usage of storage space \n\
-    cat        ---  Print out the file contents:cat fileName \n\
-    exit       ---  exit this system ");
 }
