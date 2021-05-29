@@ -68,9 +68,7 @@ struct inode
 		ss << "size " << size << "\n";
 		ss << "createTime " << createTime << "\n";
 		ss << "lastModify " << lastModify << "\n";
-		for (int i = 0; i < 10; i++) {
-			if (directBlock[i] == 0)
-				break;
+		for (int i = 0; i < size && i<10; i++) {
 			ss << "direct block " << i << ": " << directBlock[i] << "\n";
 		}
 		if (indirectBlock > 0)
@@ -108,7 +106,7 @@ public:
 		b. 删除inode
 		c. 删除父级文件夹中的名称
 	*******************/
-	void createFile(std::string, int);
+	inode* createFile(std::string, int);
 	void deleteFile(std::string);
 
 	/******************

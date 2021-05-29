@@ -21,7 +21,6 @@ file_system::file_system(){
 		createFileSystem();
 	}
 
-	system("pause");
 	cout <<"root\n"<< current->to_string();
 
 }
@@ -36,19 +35,18 @@ void file_system::createFileSystem(){
 	fwrite(&end,1,1,fp);
 	fclose(fp);
 	
+	sys_node.inodeBitMap = sizeof(sysNode)+ block_bitmap_size;
 	sys_node.blockBitMap = sizeof(sysNode);
 
 	//前7个block为系统空间
-	setBitMap(6, 0, true);
-	setBitMap(6, 1, true);
-	setBitMap(6, 2, true);
-	setBitMap(6, 3, true);
-	setBitMap(6, 4, true);
-	setBitMap(6, 5, true);
-	setBitMap(6, 6, true);
-
-	sys_node.inodeBitMap = sizeof(sysNode)+ block_bitmap_size;
-	sys_node.blockBitMap = sizeof(sysNode);
+	setBitMap(sys_node.blockBitMap, 0, true);
+	setBitMap(sys_node.blockBitMap, 1, true);
+	setBitMap(sys_node.blockBitMap, 2, true);
+	setBitMap(sys_node.blockBitMap, 3, true);
+	setBitMap(sys_node.blockBitMap, 4, true);
+	setBitMap(sys_node.blockBitMap, 5, true);
+	setBitMap(sys_node.blockBitMap, 6, true);
+	sys_node.blockUsed = 7;
 
 	inode root;
 	root.addr = applyINode();
@@ -57,13 +55,14 @@ void file_system::createFileSystem(){
 	root.size = 0;
 	updateINode(&root);
 	//cout<<root.to_string();
-	sys_node.rootINode = root.addr;
-	sys_node.blockUsed = 7;
+	sys_node.rootINode = 0;
 
 	fp = fopen(this->sysFile, "r+");
 	fseek(fp, 0, SEEK_SET);
 	fwrite(&sys_node, sizeof(sys_node), 1, fp);
 	fclose(fp);
+
+	//cout<<"root\n"<<root.to_string();
 
 	current = this->getINode(sys_node.rootINode);
 }
@@ -97,7 +96,8 @@ void file_system::setBitMap(unsigned short addr,int offset, bool bit) {
 //unsigned short file_system::getAvaiableBlock(unsigned short addr, ) {}
 
 unsigned int file_system::applyBlock(){
-	return 7;
+	int a=sys_node.blockUsed++;
+	return a;
 }
 
 
@@ -132,18 +132,22 @@ void file_system::writeItem(unsigned short blockId){
 
 void file_system::copyItem(unsigned short src,unsigned short dst){
 	int offset1 = src*block_size;
+	FILE* fp1 = fopen(this->sysFile, "r");
+	fseek(fp1, offset1,SEEK_SET);
+
 	int offset2 = dst*block_size;
-	fp = fopen(this->sysFile, "r+");
+	FILE* fp2 = fopen(this->sysFile, "r+");
+	fseek(fp2, offset2,SEEK_SET);
+
 	char c;
 	for (int i = 0; i < block_size; ++i)
 	{
-		fseek(fp, offset1 + i,SEEK_SET);
-		fread(&c,sizeof(char),1,fp);
-
-		fseek(fp,offset2 + i,SEEK_SET);
-		fwrite(&c,sizeof(char),1,fp);
+		fread(&c,sizeof(char),1,fp1);
+		fwrite(&c,sizeof(char),1,fp2);
 	}
-	fclose(fp);
+
+	fclose(fp1);
+	fclose(fp2);
 }
 
 unsigned short file_system::applyINode() {
@@ -161,7 +165,6 @@ unsigned short file_system::applyINode() {
 			node.bitmap[0] = 128;
 			fseek(fp, offset, SEEK_SET);
 			fwrite(&node, sizeof(node), 1, fp);
-			//cout<<node.to_string();
 			goto success;
 		}
 		else {
@@ -184,7 +187,8 @@ unsigned short file_system::applyINode() {
 	}
 success:
 	fclose(fp);
-	//cout<<"applyI	Node "<<nodeIndex<<" "<<offset<<endl;
+	//cout<<node.to_string();
+	//cout<<"applyINode "<<nodeIndex<<" "<<offset<<endl;
 	return nodeIndex;
 }
 
@@ -194,13 +198,15 @@ inode* file_system::getINode(unsigned short addr){
 	int offset = this->sys_node.inodeBitMap + (addr / inode_in_block) * sizeof(inodeBitMap);
 	fseek(fp, offset, SEEK_SET);
 	fread(&map, sizeof(map), 1, fp);
-	//cout<<map.to_string();
 	inode* node=new inode();
 
 	int offset2 = map.addr * block_size + (addr % inode_in_block) * sizeof(inode);
 	fseek(fp, offset2, SEEK_SET);
-	fread(node, sizeof(node), 1, fp);
+	fread(node, sizeof(*node), 1, fp);
 	fclose(fp);
+
+	//cout<<map.to_string();
+	//cout<<"get inode: offset1:"<<offset<<" offset2:"<<offset2<<"\n";
 
 	return node;
 }
@@ -212,13 +218,14 @@ void file_system::updateINode(inode* node){
 	fseek(fp, offset, SEEK_SET);
 	fread(&map, sizeof(map), 1, fp);
 
-
 	int offset2 = map.addr * block_size + (node->addr % inode_in_block) * sizeof(inode);
-
 	//cout<<"updateINode "<<map.addr<<" "<<map.bitmap<<" "<<offset2<<endl;
 	fseek(fp, offset2, SEEK_SET);
 	fwrite(node, sizeof((*node)), 1, fp);
 
+	//cout<<map.to_string();
+	//cout<<"update inode: offset1:"<<offset<<" offset2:"<<offset2<<" "<<sizeof((*node))<<"\n";
+	//cout<<node->to_string();
 	fclose(fp);
 }
 
@@ -294,7 +301,6 @@ void file_system::add_file_node(inode* dirNode,fileNode new_node){
 				fseek(fp, block_index*block_size+i*sizeof(fileNode), SEEK_SET);
 				fwrite(&new_node,sizeof(new_node),1,fp);
 				fclose(fp);
-				system("pause");
 				goto success;
 			}
 		}
@@ -309,7 +315,6 @@ void file_system::add_file_node(inode* dirNode,fileNode new_node){
 		fseek(fp,dirNode->indirectBlock*block_size+(dirNode->size-10)*sizeof(new_block_index),SEEK_SET);
 		fwrite(&new_block_index,sizeof(new_block_index),1,fp);
 		fclose(fp);
-		system("pause");
 	}
 	dirNode->size++;
 	updateINode(dirNode);
@@ -318,7 +323,6 @@ void file_system::add_file_node(inode* dirNode,fileNode new_node){
 	fseek(fp,new_block_index*block_size,SEEK_SET);
 	fwrite(&new_node,sizeof(new_node),1,fp);
 	fclose(fp);
-	system("pause");
 
 	success:
 	return;
@@ -379,24 +383,6 @@ void file_system::catFile(inode* file){
 }
 
 void file_system::test() {
-	
-	cout << this->current->to_string();
-
-	listDir();
-
-	createFile("./file1", 3);
-
-	/**********************
-	测试单元：
-	1. 系统初始化
-	2. 创建一个文件，读取文件内容
-	3. 创建一个文件夹
-	4. 将2中的文件复制到3中的文件夹，列出该目录内容
-	4.5 重启文件系统
-	5. 删除2中的文件
-	6. 删除3中的文件夹
-	**********************/
-
 }
 
 void file_system::help()

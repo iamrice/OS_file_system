@@ -12,8 +12,10 @@ inode* file_system::find_entry(inode* dir, string file_name) {
 	inode *node, *null_node=nullptr;
 	list<fileNode> fileList = loadDir(dir);
 	list<fileNode>::iterator it;
+	//cout<<fileList.size()<<endl;
 	for (it = fileList.begin(); it != fileList.end(); it++) {
-		if (it->name == file_name)//$
+		//cout<<it->name<<endl;
+		if (strcmp(file_name.c_str(),it->name)==0)//$
 		{
 			node = getINode(it->nodeAddr);
 			return node;
@@ -30,7 +32,7 @@ inode* file_system::get_path_inode(string pathname) {
 	inode *node, *dir, *null_node=nullptr;
 	regex e1("(/\\w{1,30})*");//判断/dir/file类型
 	regex e2("^.(/\\w{1,30})*");//判断./dir/file类型：即从当前目录开始
-	cout<<pathname<<endl;
+	//cout<<pathname<<endl;
 	if (regex_match(pathname, e2)) {
 		dir = this->current;
 		pathname.erase(0, 1);
@@ -39,16 +41,17 @@ inode* file_system::get_path_inode(string pathname) {
 		dir = getINode((this->sys_node).rootINode);
 	}
 	else{
-		cout << "Wrong path!" << endl;
+		cout << "this is a wrong path!" << endl;
 		return null_node;//这里该返回什么？
 	}
 
-	regex e("\\w{1,30}");//
+	cout<<pathname<<endl;
+	regex e("\\w{1,30}");
 	smatch sm;
 	string::const_iterator a = pathname.begin();
 	string::const_iterator b = pathname.end();
 	while (regex_search(a, b, sm, e)) {
-		//cout << sm[0] << endl;
+		cout << sm[0] << endl;
 		dir = find_entry(dir, sm[0]);
 		if (dir==nullptr ) {//判断
 			cout << "Wrong path!" << endl;
@@ -77,7 +80,7 @@ string file_system::get_create_file_name(string pathname) {
 
 	size_t index = pathname.find_last_of("/");
 
-	string filename = pathname.substr(index);
+	string filename = pathname.substr(index+1);
 	return filename;//这里的字符串乱码问题还没解决！！！！！
 }
 
@@ -110,48 +113,50 @@ string file_system::get_path(inode* file_inode) {//path用string filename用char
 	return path;
 }
 
-void file_system::createFile(string path, int size) {   
+inode* file_system::createFile(string path, int size) {   
 	if (size > 74 || size > block_num - this->sys_node.blockUsed) {
-		return;
+		return nullptr;
 	}
 
-	inode new_inode;
-	new_inode.addr = applyINode();
-	if (new_inode.addr == 0) {
+	inode* new_inode=new inode();
+	new_inode->addr = applyINode();
+	if (new_inode->addr == 0) {
 		std::cout << "There is no space for a new file!" << endl;
-		return;
+		return nullptr;
 	}
 
 	int block_count=0;
 	while(block_count<size){
 		int block_index=applyBlock();
+		writeItem(block_index);
 		if(block_count<10){
-			new_inode.directBlock[block_count]=block_index;
+			new_inode->directBlock[block_count]=block_index;
 		}else{
-			add_indirect_block_index(new_inode.indirectBlock,block_count-10,block_index);
+			add_indirect_block_index(new_inode->indirectBlock,block_count-10,block_index);
 		}
 		block_count++;
 	}
 
 	inode *dir = get_path_inode_except_name(path);
-	time(&new_inode.createTime);
-	new_inode.isDirection = false;
-	new_inode.parentAddr = dir->addr;
-	new_inode.size = size;
+	time(&new_inode->createTime);
+	new_inode->isDirection = false;
+	new_inode->parentAddr = dir->addr;
+	new_inode->size = size;
 	
-	updateINode(&new_inode);
+	updateINode(new_inode);
 
 	string fname = get_create_file_name(path);
 	char name[30];
 	strcpy(name, fname.c_str());
-	fileNode fnode(new_inode.addr, name);
+	fileNode fnode(new_inode->addr, name);
 	add_file_node(dir, fnode);
+
 
 	//cout << "current: \n" << current->to_string();
 	cout << "dir: \n" << dir->to_string();
-	cout << "new file: \n" << new_inode.to_string();
+	cout << "new file: \n" << new_inode->to_string();
 
-	return;
+	return new_inode;
 }
 
 /*
@@ -189,65 +194,35 @@ void file_system::deleteFile(string path) {
 
 }
 
-/*
-*/
-void file_system::createDir(string pathname) {//这里需要支持嵌套的，
 
-	inode *dir=nullptr;
-	regex e1("(/\\w{1,30})+");//判断/dir/file类型
-	regex e2("^.(/\\w{1,30})+");//判断./dir/file类型：即从当前目录开始
-	if (!regex_match(pathname, e1) && !regex_match(pathname, e2)) {
-		cout << "Wrong path!" << endl;
+void file_system::createDir(string path) {   
+
+	inode new_inode;
+	new_inode.addr = applyINode();
+	if (new_inode.addr == 0) {
+		std::cout << "There is no space for a new file!" << endl;
 		return;
 	}
-	else if (regex_match(pathname, e2)) {
-		dir = this->current;
-		pathname.erase(0, 1);
-	}
-	else if (regex_match(pathname, e1)) {
-		dir = getINode((this->sys_node).rootINode);
-	}
-	regex e("\\w{1,30}");//输入格式无误，正则化得到各个目录
-	smatch sm;
-	string::const_iterator a = pathname.begin();
-	string::const_iterator b = pathname.end();
-	while (regex_search(a, b, sm, e)) {//
-		//cout << sm[0] << endl;
-		int block_index;
-		if (find_entry(dir, sm[0])->addr != 0) {//如果下一个dir存在，继续往下找
-			dir = find_entry(dir, sm[0]);
-			a = sm[0].second;
-			continue;
-		}
-		//如果不存在，则要创建一个新的dir,创建代码参考createFile,只改变isDirection，size设为1
-		inode new_inode;
-		new_inode.addr = applyINode();
-		if (new_inode.addr == 0) {
-			cout << "There is no space for a new directory!" << endl;
-			return;
-		}
-		block_index = applyBlock();
-		if (block_index == 0) {
-			cout << "There is no space for a new directory!" << endl;
-			releaseINode(new_inode.addr);//空间不够记得释放已分配的inode
-			return;
-		}
-		else
-			this->sys_node.blockUsed++;
-		time(&new_inode.createTime);
-		new_inode.isDirection = true;
-		new_inode.parentAddr = dir->addr;
-		new_inode.size = 1;//size设置为1
-		new_inode.directBlock[0] = block_index;
-		updateINode(&new_inode);
-		string fname = get_create_file_name(pathname);
-		char name[30];
-		strcpy(name, fname.c_str());
-		fileNode fnode(new_inode.addr, name);
-		add_file_node(dir, fnode);
-		dir = &new_inode;//新建的目录作为下一个嵌套的目录 //创建新目录成功	
-		a = sm[0].second;
-	}//while
+
+	inode *dir = get_path_inode_except_name(path);
+	time(&new_inode.createTime);
+	new_inode.isDirection = true;
+	new_inode.parentAddr = dir->addr;
+	new_inode.size = 0;
+	
+	updateINode(&new_inode);
+
+	string fname = get_create_file_name(path);
+	char name[30];
+	strcpy(name, fname.c_str());
+	fileNode fnode(new_inode.addr, name);
+	add_file_node(dir, fnode);
+
+	//cout << "current: \n" << current->to_string();
+	cout << "dir: \n" << dir->to_string();
+	cout << "new dir: \n" << new_inode.to_string();
+
+	return;
 }
 
 /*
@@ -334,49 +309,19 @@ b. 在复制后路径的父级目录上记录文件名和inode地址
 */
 void file_system::copy(string origin_path, string copy_path) {
 	inode *node = get_path_inode(origin_path);
-	inode *dir = get_path_inode_except_name(copy_path);//这里把copy_path当作也带有文件名字的路径
-	inode new_inode;
-	new_inode.addr = applyINode();
-	if (new_inode.addr == 0) {
-		cout << "There is no space for copying a file!" << endl;
-		return;
-	}
-	time(&new_inode.createTime);
-	new_inode.isDirection = node->isDirection;
-	new_inode.parentAddr = dir->addr;
-	new_inode.size = node->size;//接下来还要添加地址，也就是分配block
-
-	if(new_inode.size > 74 || new_inode.size > block_num - this->sys_node.blockUsed){
-		return;
-	}
+	inode *new_inode=createFile(copy_path,node->size);
 
 	int block_count=0;
-	while(block_count<new_inode.size){
-		int block_index=applyBlock();
+	while(block_count<new_inode->size){
+		cout<<"block_count "<<block_count<<endl;
 		if(block_count<10){
-			new_inode.directBlock[block_count]=block_index;
-		}else{
-			add_indirect_block_index(new_inode.indirectBlock,block_count-10,block_index);
-		}
-	}
-	
-	updateINode(&new_inode);
-	
-	string fname = get_create_file_name(copy_path);
-	char name[30];
-	strcpy(name, fname.c_str());
-	fileNode fnode(new_inode.addr, name);
-	add_file_node(dir, fnode);
-	
-	block_count=0;
-	while(block_count<new_inode.size){
-		if(block_count<10){
-			copyItem(node->directBlock[block_count] , new_inode.directBlock[block_count]);
+			copyItem(node->directBlock[block_count] , new_inode->directBlock[block_count]);
 		}else{
 			int src=get_indirect_block_index(node->indirectBlock,block_count-10);
-			int dst=get_indirect_block_index(new_inode.indirectBlock,block_count-10);
+			int dst=get_indirect_block_index(new_inode->indirectBlock,block_count-10);
 			copyItem(src,dst);
 		}
+		block_count++;
 	}
 }
 

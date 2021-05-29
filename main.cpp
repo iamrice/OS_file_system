@@ -1,11 +1,94 @@
 #include "file_system.h"
+#include <windows.h>
 #include <iostream>
 #include<cstdio>
 using namespace std;
 
 const char* command[] = { "help","createFile","deleteFile","createDir","deleteDir","changeDir","dir","cp","sum","cat","exit" };
 
-int main() {
+int main_process();
+int test_unit_1();
+int test_unit_2();
+int test_unit_3();
+int test_unit_4();
+
+int main(){
+	test_unit_4();
+}
+
+/**********************
+测试单元：
+1. 系统初始化
+2. 创建一个文件，读取文件内容
+3. 创建一个文件夹
+4. 将2中的文件复制到3中的文件夹，列出该目录内容
+4.5 重启文件系统
+5. 删除2中的文件
+6. 删除3中的文件夹
+**********************/
+
+int test_unit_4(){
+	file_system* sys;
+
+	sys = new file_system();
+	sys->createDir("./dir1");
+	sys->createFile("./dir1/file1",1);
+	sys->listDir();
+	sys->changeDir("./dir1");
+	sys->listDir();
+	sys->sum();
+
+	sys->deleteDir("./dir1");
+	sys->listDir();
+	sys->sum();	
+
+	system("pause");
+	remove("./system");
+}
+
+
+int test_unit_3(){
+	file_system* sys;
+
+	sys = new file_system();
+	sys->createFile("./file1", 3);
+	sys->listDir();
+	sys->sum();
+
+	sys->deleteFile("./file1");
+	sys->listDir();
+	sys->sum();
+
+
+	system("pause");
+	remove("./system");
+}
+
+
+int test_unit_2(){
+	file_system* sys;
+
+	sys = new file_system();
+	sys->createFile("./file1", 3);
+	sys->listDir();
+
+	sys->cat("./file1");
+
+	sys->createDir("/dir1");
+
+	sys->listDir();
+
+	sys->copy("./file1","./dir1/file2");
+
+	sys->cat("./dir1/file2");
+
+	system("pause");
+	remove("./system");
+}
+
+int test_unit_1() //已通过
+{
+	cout << sizeof(sysNode) << " " << sizeof(inode) << " " << sizeof(fileNode)<<"\n";
 	file_system* sys;
 
 	sys = new file_system();
@@ -15,12 +98,13 @@ int main() {
 	delete sys;
 
 	sys = new file_system();
-	
+	sys->listDir();
+
 	system("pause");
 	remove("./system");
 }
 
-int main2(){
+int main_process(){
 	file_system system;
 
 	char Command[30],name[30];
