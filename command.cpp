@@ -238,7 +238,7 @@ void file_system::deleteDir(string path) {
 	//这里判断是否在目录里面，如果path是当前路径的字串，则包含当前目录，不能删除
 	string current_path = get_path(this->current);
 
-	if (current_path.find(path)) {//考虑到重名问题，如果path是current_path从头开始的字串
+	if (current_path.find(path)==current_path.npos) {//考虑到重名问题，如果path是current_path从头开始的字串
 		cout << "Cannot delete current directory!" << endl;
 		return;
 	}
@@ -272,7 +272,7 @@ void file_system::deleteDir(string path) {
 			releaseItem(indirect_address);
 		}
 	}
-	
+
 	inode *father_dir = getINode(dir->parentAddr);//然后释放该inode节点与block，删除父目录里的信息
 	char* name;
 	name = get_name(father_dir, dir);
