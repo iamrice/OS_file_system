@@ -150,7 +150,7 @@ public:
 
 private:
 	int block_size = 1024;
-
+	int test_size = 1024 * 16;
 	int system_size = 1024 * 1024 * 16;
 	int block_num = 1024 * 16;
 	int block_bitmap_size = 1024 * 2;
@@ -206,7 +206,7 @@ private:
 	***************/
 	int get_indirect_block_index(int addr, int block_count);
 	void add_indirect_block_index(int addr, int block_count, unsigned short block_index);
-	void catFile(inode file);
+	void catFile(inode* file);
 	void copyItem(unsigned short src,unsigned short dst);
 
 	/***************
@@ -216,7 +216,7 @@ private:
 	***************/
 	std::list<fileNode> loadDir(inode *dirNode);
 	void add_file_node(inode* dirNode, fileNode new_node);
-	void delete_file_node(inode dirNode, char* file_name);
+	void delete_file_node(inode* dirNode, char* file_name);
 
 
 

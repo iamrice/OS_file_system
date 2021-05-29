@@ -11,7 +11,7 @@ file_system::file_system(){
 	cout<<"Copyright (c) 2021 Taiyou Chen, Zesheng Wei and Ying Qiu. All rights reserved."<<endl;
 	cout<<"Type \"help\" or \"lisence\" for more informations"<<endl;
 	sysFile = "./system";
-
+	
 	fp=fopen(this->sysFile, "r");
 	if (fp) {
 		fclose(fp);
@@ -20,13 +20,18 @@ file_system::file_system(){
 	else {
 		createFileSystem();
 	}
+
+	system("pause");
+	cout <<"root\n"<< current->to_string();
+
 }
 
 file_system::~file_system(){}
 
 void file_system::createFileSystem(){
 	fp = fopen(this->sysFile, "w");
-	fseek(fp,1024*1024*16-1,SEEK_SET);
+	//fseek(fp,this->system_size-1,SEEK_SET);
+	fseek(fp, this->test_size - 1, SEEK_SET);
 	char end=EOF;
 	fwrite(&end,1,1,fp);
 	fclose(fp);
@@ -51,7 +56,7 @@ void file_system::createFileSystem(){
 	root.isDirection = true;
 	root.size = 0;
 	updateINode(&root);
-	cout<<root.to_string();
+	//cout<<root.to_string();
 	sys_node.rootINode = root.addr;
 	sys_node.blockUsed = 7;
 
@@ -156,7 +161,7 @@ unsigned short file_system::applyINode() {
 			node.bitmap[0] = 128;
 			fseek(fp, offset, SEEK_SET);
 			fwrite(&node, sizeof(node), 1, fp);
-			cout<<node.to_string();
+			//cout<<node.to_string();
 			goto success;
 		}
 		else {
@@ -164,7 +169,7 @@ unsigned short file_system::applyINode() {
 				int i = t / 8;
 				int j = t % 8;
 				char temp = node.bitmap[i] | (1 << (7-j));
-				cout<<"temp:"<<hex<<int(temp)<<" vs "<<hex<<int(node.bitmap[i])<<"\n";
+				//cout<<"temp:"<<hex<<int(temp)<<" vs "<<hex<<int(node.bitmap[i])<<"\n";
 				if (temp != node.bitmap[i]) {
 					node.bitmap[i] = temp;
 					fseek(fp, offset, SEEK_SET);
@@ -189,15 +194,15 @@ inode* file_system::getINode(unsigned short addr){
 	int offset = this->sys_node.inodeBitMap + (addr / inode_in_block) * sizeof(inodeBitMap);
 	fseek(fp, offset, SEEK_SET);
 	fread(&map, sizeof(map), 1, fp);
-	cout<<map.to_string();
-	inode node;
+	//cout<<map.to_string();
+	inode* node=new inode();
 
 	int offset2 = map.addr * block_size + (addr % inode_in_block) * sizeof(inode);
 	fseek(fp, offset2, SEEK_SET);
-	fread(&node, sizeof(node), 1, fp);
+	fread(node, sizeof(node), 1, fp);
 	fclose(fp);
 
-	return &node;
+	return node;
 }
 
 void file_system::updateINode(inode* node){
@@ -289,6 +294,7 @@ void file_system::add_file_node(inode* dirNode,fileNode new_node){
 				fseek(fp, block_index*block_size+i*sizeof(fileNode), SEEK_SET);
 				fwrite(&new_node,sizeof(new_node),1,fp);
 				fclose(fp);
+				system("pause");
 				goto success;
 			}
 		}
@@ -303,6 +309,7 @@ void file_system::add_file_node(inode* dirNode,fileNode new_node){
 		fseek(fp,dirNode->indirectBlock*block_size+(dirNode->size-10)*sizeof(new_block_index),SEEK_SET);
 		fwrite(&new_block_index,sizeof(new_block_index),1,fp);
 		fclose(fp);
+		system("pause");
 	}
 	dirNode->size++;
 	updateINode(dirNode);
@@ -311,19 +318,20 @@ void file_system::add_file_node(inode* dirNode,fileNode new_node){
 	fseek(fp,new_block_index*block_size,SEEK_SET);
 	fwrite(&new_node,sizeof(new_node),1,fp);
 	fclose(fp);
+	system("pause");
 
 	success:
 	return;
 }
 
-void file_system::delete_file_node(inode dirNode,char* file_name){
+void file_system::delete_file_node(inode* dirNode,char* file_name){
 	int block_count=0;
-	while(block_count<dirNode.size){
+	while(block_count<dirNode->size){
 		int block_index;
 		if(block_count<10){
-			block_index=dirNode.directBlock[block_count];
+			block_index=dirNode->directBlock[block_count];
 		}else{
-			block_index=get_indirect_block_index(dirNode.indirectBlock,block_count-10);
+			block_index=get_indirect_block_index(dirNode->indirectBlock,block_count-10);
 		}
 		block_count++;
 
@@ -347,14 +355,14 @@ void file_system::delete_file_node(inode dirNode,char* file_name){
 }
 //test
 
-void file_system::catFile(inode file){
+void file_system::catFile(inode* file){
 	int block_count=0;
-	while(block_count<file.size){
+	while(block_count<file->size){
 		int block_index;
 		if(block_count<10){
-			block_index=file.directBlock[block_count];
+			block_index=file->directBlock[block_count];
 		}else{
-			block_index=get_indirect_block_index(file.indirectBlock,block_count-10);
+			block_index=get_indirect_block_index(file->indirectBlock,block_count-10);
 		}
 		block_count++;
 
@@ -371,15 +379,12 @@ void file_system::catFile(inode file){
 }
 
 void file_system::test() {
-	cout<<"inode "<<sizeof(inode)<<" "<<sizeof(inodeBitMap)<<"\n";
-	inode a=getINode(0);
-	cout<<a.to_string();
-	inode b;
-	b.addr=applyINode();
-	b.parentAddr=a.addr;
-	b.isDirection=false;
-	updateINode(&b);
-	cout<<b.to_string();
+	
+	cout << this->current->to_string();
+
+	listDir();
+
+	createFile("./file1", 3);
 
 	/**********************
 	测试单元：

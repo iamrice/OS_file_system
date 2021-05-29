@@ -9,7 +9,7 @@ using namespace std;
 */
 inode* file_system::find_entry(inode* dir, string file_name) {
 
-	inode *node, *null_node;
+	inode *node, *null_node=nullptr;
 	list<fileNode> fileList = loadDir(dir);
 	list<fileNode>::iterator it;
 	for (it = fileList.begin(); it != fileList.end(); it++) {
@@ -27,7 +27,7 @@ inode* file_system::find_entry(inode* dir, string file_name) {
 */
 inode* file_system::get_path_inode(string pathname) {
 
-	inode *node, *dir, *null_node;
+	inode *node, *dir, *null_node=nullptr;
 	regex e1("(/\\w{1,30})*");//判断/dir/file类型
 	regex e2("^.(/\\w{1,30})*");//判断./dir/file类型：即从当前目录开始
 	cout<<pathname<<endl;
@@ -50,7 +50,7 @@ inode* file_system::get_path_inode(string pathname) {
 	while (regex_search(a, b, sm, e)) {
 		//cout << sm[0] << endl;
 		dir = find_entry(dir, sm[0]);
-		if (dir->addr == 0) {//判断
+		if (dir==nullptr ) {//判断
 			cout << "Wrong path!" << endl;
 			return null_node;
 		}
@@ -82,7 +82,7 @@ string file_system::get_create_file_name(string pathname) {
 }
 
 //根据file_inode和dir得到该文件的名字；
-char* file_system::get_name(inode* dir, inode *file_inode) {
+char* file_system::get_name(inode* dir, inode* file_inode) {
 	list<fileNode> fileList = loadDir(dir);
 	list<fileNode>::iterator it;
 	for (it = fileList.begin(); it != fileList.end(); it++) {
@@ -95,7 +95,7 @@ char* file_system::get_name(inode* dir, inode *file_inode) {
 string file_system::get_path(inode* file_inode) {//path用string filename用char*
 	string path;
 	string s = "/";
-	inode* dir = getINode(file_inode->parentAddr);
+	inode *dir = getINode(file_inode->parentAddr);
 
 	s.append(get_name(dir, file_inode));
 	path.insert(0, s);
@@ -133,7 +133,7 @@ void file_system::createFile(string path, int size) {
 		block_count++;
 	}
 
-	inode* dir = get_path_inode_except_name(path);
+	inode *dir = get_path_inode_except_name(path);
 	time(&new_inode.createTime);
 	new_inode.isDirection = false;
 	new_inode.parentAddr = dir->addr;
@@ -147,7 +147,7 @@ void file_system::createFile(string path, int size) {
 	fileNode fnode(new_inode.addr, name);
 	add_file_node(dir, fnode);
 
-	cout << "current: \n" << current->to_string();
+	//cout << "current: \n" << current->to_string();
 	cout << "dir: \n" << dir->to_string();
 	cout << "new file: \n" << new_inode.to_string();
 
@@ -158,33 +158,33 @@ void file_system::createFile(string path, int size) {
 对应文件的inode: node,对应目录的inode: dir
 */
 void file_system::deleteFile(string path) {
-	inode node = get_path_inode(path);//判断是否为当前文件
-	if (node.addr == this->current.addr) {//这里直接用地址来判断是否为同一个Inode
+	inode *node = get_path_inode(path);//判断是否为当前文件
+	if (node->addr == this->current->addr) {//这里直接用地址来判断是否为同一个Inode
 		cout << "Cannot delete current file!" << endl;
 		return;
 	}
-	inode dir = get_path_inode_except_name(path);
+	inode *dir = get_path_inode_except_name(path);
 	int indirect_address;
-	if (node.size <= 10) {
-		for (int i = 0; i < node.size; i++) {
-			releaseBlock(node.directBlock[i]);
-			releaseItem(node.directBlock[i]);
+	if (node->size <= 10) {
+		for (int i = 0; i < node->size; i++) {
+			releaseBlock(node->directBlock[i]);
+			releaseItem(node->directBlock[i]);
 		}
 	}
 	else {
 		for (int i = 0; i < 10; i++) {
-			releaseBlock(node.directBlock[i]);
-			releaseItem(node.directBlock[i]);
+			releaseBlock(node->directBlock[i]);
+			releaseItem(node->directBlock[i]);
 		}
-		for (int j = 0; j < node.size - 10; j++) {
-			indirect_address = get_indirect_block_index(node.indirectBlock, j);
+		for (int j = 0; j < node->size - 10; j++) {
+			indirect_address = get_indirect_block_index(node->indirectBlock, j);
 			releaseBlock(indirect_address);
 			releaseItem(indirect_address);
 		}
 	}
 	char* name;
 	name = get_name(dir, node);
-	releaseINode(node.addr);
+	releaseINode(node->addr);
 	delete_file_node(dir, name);
 
 }
@@ -193,7 +193,7 @@ void file_system::deleteFile(string path) {
 */
 void file_system::createDir(string pathname) {//这里需要支持嵌套的，
 
-	inode dir;
+	inode *dir=nullptr;
 	regex e1("(/\\w{1,30})+");//判断/dir/file类型
 	regex e2("^.(/\\w{1,30})+");//判断./dir/file类型：即从当前目录开始
 	if (!regex_match(pathname, e1) && !regex_match(pathname, e2)) {
@@ -214,7 +214,7 @@ void file_system::createDir(string pathname) {//这里需要支持嵌套的，
 	while (regex_search(a, b, sm, e)) {//
 		//cout << sm[0] << endl;
 		int block_index;
-		if (find_entry(dir, sm[0]).addr != 0) {//如果下一个dir存在，继续往下找
+		if (find_entry(dir, sm[0])->addr != 0) {//如果下一个dir存在，继续往下找
 			dir = find_entry(dir, sm[0]);
 			a = sm[0].second;
 			continue;
@@ -236,7 +236,7 @@ void file_system::createDir(string pathname) {//这里需要支持嵌套的，
 			this->sys_node.blockUsed++;
 		time(&new_inode.createTime);
 		new_inode.isDirection = true;
-		new_inode.parentAddr = dir.addr;
+		new_inode.parentAddr = dir->addr;
 		new_inode.size = 1;//size设置为1
 		new_inode.directBlock[0] = block_index;
 		updateINode(&new_inode);
@@ -244,8 +244,8 @@ void file_system::createDir(string pathname) {//这里需要支持嵌套的，
 		char name[30];
 		strcpy(name, fname.c_str());
 		fileNode fnode(new_inode.addr, name);
-		add_file_node(&dir, fnode);
-		dir = new_inode;//新建的目录作为下一个嵌套的目录 //创建新目录成功	
+		add_file_node(dir, fnode);
+		dir = &new_inode;//新建的目录作为下一个嵌套的目录 //创建新目录成功	
 		a = sm[0].second;
 	}//while
 }
@@ -255,8 +255,8 @@ a. 递归遍历目录下的目录和文件，挨个删除
 b. 释放块空间，删除inode结点，删除父级文件夹中的名称
 */
 void file_system::deleteDir(string path) {
-	inode dir = get_path_inode(path);//由于这里path是一个地址目录，所以直接用get_path_inode得到目录;
-	if (this->current.addr == dir.addr) {//这里直接用地址来判断是否为同一个Inode
+	inode *dir = get_path_inode(path);//由于这里path是一个地址目录，所以直接用get_path_inode得到目录;
+	if (this->current->addr == dir->addr) {//这里直接用地址来判断是否为同一个Inode
 		cout << "Cannot delete current directory!" << endl;
 		return;
 	}
@@ -267,38 +267,38 @@ void file_system::deleteDir(string path) {
 		cout << "Cannot delete current directory!" << endl;
 		return;
 	}
-	inode file_inode;
+	inode *file_inode;
 	list<fileNode> fileList = loadDir(dir);
 	list<fileNode>::iterator it;
 	for (it = fileList.begin(); it != fileList.end(); it++) {
 		file_inode = getINode(it->nodeAddr);
-		if (file_inode.isDirection)
+		if (file_inode->isDirection)
 			deleteDir(get_path(file_inode));
 		else
 			deleteFile(get_path(file_inode));
 	}
-	inode father_dir = getINode(dir.parentAddr);//然后释放该inode节点与block，删除父目录里的信息
+	inode *father_dir = getINode(dir->parentAddr);//然后释放该inode节点与block，删除父目录里的信息
 	int indirect_address;
-	if (dir.size <= 10) {
-		for (int i = 0; i < dir.size; i++) {
-			releaseBlock(dir.directBlock[i]);
-			releaseItem(dir.directBlock[i]);
+	if (dir->size <= 10) {
+		for (int i = 0; i < dir->size; i++) {
+			releaseBlock(dir->directBlock[i]);
+			releaseItem(dir->directBlock[i]);
 		}
 	}
 	else {
 		for (int i = 0; i < 10; i++) {
-			releaseBlock(dir.directBlock[i]);
-			releaseItem(dir.directBlock[i]);
+			releaseBlock(dir->directBlock[i]);
+			releaseItem(dir->directBlock[i]);
 		}
-		for (int j = 0; j < dir.size - 10; j++) {
-			indirect_address = get_indirect_block_index(dir.indirectBlock, j);
+		for (int j = 0; j < dir->size - 10; j++) {
+			indirect_address = get_indirect_block_index(dir->indirectBlock, j);
 			releaseBlock(indirect_address);
 			releaseItem(indirect_address);
 		}
 	}
 	char* name;
 	name = get_name(father_dir, dir);
-	releaseINode(dir.addr);
+	releaseINode(dir->addr);
 	delete_file_node(father_dir, name);
 }
 
@@ -306,20 +306,23 @@ void file_system::deleteDir(string path) {
 */
 void file_system::changeDir(string path)
 {
-	inode dir = get_path_inode(path);//这里的path也是一个目录路径,对于path是否合法的问题交给get_path_inode函数
-	if (dir.addr != 0) {
+	inode *dir = get_path_inode(path);//这里的path也是一个目录路径,对于path是否合法的问题交给get_path_inode函数
+	if (dir->addr != 0) {
 		this->current = dir;
 	}
 }
 
 void file_system::listDir() {
-	inode file_inode;
+	inode *file_inode;
 	list<fileNode> fileList = loadDir(this->current);
 	list<fileNode>::iterator it;
+	//cout << "current:\n" << current->to_string();
+	cout << fileList.size() << "\n";
 	for (it = fileList.begin(); it != fileList.end(); it++) {
 		cout << it->name << "\t";
 		file_inode = getINode(it->nodeAddr);
-		cout << "size: " << file_inode.size << "\t" << "create Time: " << file_inode.createTime << endl;
+		cout<<file_inode->to_string();
+		//cout << "size: " << file_inode->size << "\t" << "create Time: " << file_inode->createTime << endl;
 	}
 }
 
@@ -330,8 +333,8 @@ b. 在复制后路径的父级目录上记录文件名和inode地址
 这里还有一个问题，虽然分配了block,但要怎样把block里面的内容复制过去？？？
 */
 void file_system::copy(string origin_path, string copy_path) {
-	inode node = get_path_inode(origin_path);
-	inode dir = get_path_inode_except_name(copy_path);//这里把copy_path当作也带有文件名字的路径
+	inode *node = get_path_inode(origin_path);
+	inode *dir = get_path_inode_except_name(copy_path);//这里把copy_path当作也带有文件名字的路径
 	inode new_inode;
 	new_inode.addr = applyINode();
 	if (new_inode.addr == 0) {
@@ -339,9 +342,9 @@ void file_system::copy(string origin_path, string copy_path) {
 		return;
 	}
 	time(&new_inode.createTime);
-	new_inode.isDirection = node.isDirection;
-	new_inode.parentAddr = dir.addr;
-	new_inode.size = node.size;//接下来还要添加地址，也就是分配block
+	new_inode.isDirection = node->isDirection;
+	new_inode.parentAddr = dir->addr;
+	new_inode.size = node->size;//接下来还要添加地址，也就是分配block
 
 	if(new_inode.size > 74 || new_inode.size > block_num - this->sys_node.blockUsed){
 		return;
@@ -363,14 +366,14 @@ void file_system::copy(string origin_path, string copy_path) {
 	char name[30];
 	strcpy(name, fname.c_str());
 	fileNode fnode(new_inode.addr, name);
-	add_file_node(&dir, fnode);
+	add_file_node(dir, fnode);
 	
 	block_count=0;
 	while(block_count<new_inode.size){
 		if(block_count<10){
-			copyItem(node.directBlock[block_count] , new_inode.directBlock[block_count]);
+			copyItem(node->directBlock[block_count] , new_inode.directBlock[block_count]);
 		}else{
-			int src=get_indirect_block_index(node.indirectBlock,block_count-10);
+			int src=get_indirect_block_index(node->indirectBlock,block_count-10);
 			int dst=get_indirect_block_index(new_inode.indirectBlock,block_count-10);
 			copyItem(src,dst);
 		}
@@ -385,6 +388,6 @@ void file_system::sum() {
 
 
 void file_system::cat(string path) {
-	inode file=get_path_inode(path);
+	inode *file=get_path_inode(path);
 	catFile(file);
 }

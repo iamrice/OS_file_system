@@ -5,13 +5,28 @@ using namespace std;
 
 const char* command[] = { "help","createFile","deleteFile","createDir","deleteDir","changeDir","dir","cp","sum","cat","exit" };
 
-int main(){
-	file_system system;
+int main() {
+	file_system* sys;
+
+	sys = new file_system();
+	sys->createFile("./file1", 3);
+	sys->listDir();
+
+	delete sys;
+
+	sys = new file_system();
 	
+	system("pause");
+	remove("./system");
+}
+
+int main2(){
+	file_system system;
+
 	char Command[30],name[30];
 	int Com = -1,fileSize;
 	bool exit = 0;
-	
+
 	while(true){
 		printf("FileSystem@fileSystem:");
 		scanf("%s", Command);
