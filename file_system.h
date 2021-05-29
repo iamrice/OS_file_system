@@ -147,7 +147,6 @@ public:
 	void sum();
 
 	void test();
-
 	void help();
 
 private:
@@ -162,7 +161,7 @@ private:
 	const char* sysFile;
 	sysNode sys_node;
 	FILE *fp;
-	inode current = this->getINode(sys_node.rootINode);
+	inode current;
 	unsigned int blockFree;//空闲块数量
 	unsigned char* blockBitmap;
 	/***************
@@ -206,6 +205,7 @@ private:
 	***************/
 	int get_indirect_block_index(int addr, int block_count);
 	void add_indirect_block_index(int addr, int block_count, unsigned short block_index);
+	void catFile(inode file);
 
 
 	/***************

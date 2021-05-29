@@ -59,6 +59,8 @@ void file_system::createFileSystem(){
 	fseek(fp, 0, SEEK_SET);
 	fwrite(&sys_node, sizeof(sys_node), 1, fp);
 	fclose(fp);
+
+	current = this->getINode(sys_node.rootINode);
 }
 
 void file_system::openFileSystem(){
@@ -66,6 +68,8 @@ void file_system::openFileSystem(){
 	fseek(fp, 0, SEEK_SET);
 	fread(&sys_node, sizeof(sys_node), 1, fp);
 	fclose(fp);
+	
+	current = this->getINode(sys_node.rootINode);
 }
 
 void file_system::setBitMap(unsigned short addr,int offset, bool bit) {
@@ -106,7 +110,11 @@ unsigned int file_system::applyBlock(){
 	}
 	if(ans == -1) 
 	    return 0;
-	else return ans;
+	else{
+		this->sys_node.blockUsed++;
+		writeItem(ans);
+		return ans;
+	}
 }
 
 
@@ -123,6 +131,34 @@ void file_system::releaseItem(unsigned int blockId){
 	for (int i = 0; i < block_num; i++)
 	{
 		fputc(0, fp);
+	}
+	fclose(fp);
+}
+
+void file_system::writeItem(unsigned short blockId){
+	int offset=blockId*block_size;
+	fp = fopen(this->sysFile, "r+");
+	fseek(fp, offset,SEEK_SET);
+	char c=rand()%94+33;//随机写入
+	for (int i = 0; i < block_size; ++i)
+	{
+		fwrite(&c,sizeof(char),1,fp);
+	}
+	fclose(fp);
+}
+
+void file_system::copyItem(unsigned short src,unsigned short dst){
+	int offset1 = src*block_size;
+	int offset2 = dst*block_size;
+	fp = fopen(this->sysFile, "r+");
+	char c;
+	for (int i = 0; i < block_size; ++i)
+	{
+		fseek(fp, offset1 + i,SEEK_SET);
+		fread(&c,sizeof(char),1,fp);
+
+		fseek(fp,offset2 + i,SEEK_SET);
+		fwrite(&c,sizeof(char),1,fp);
 	}
 	fclose(fp);
 }
@@ -313,7 +349,7 @@ void file_system::delete_file_node(inode dirNode,char* file_name){
 		}
 		block_count++;
 
-		fp = fopen(this->sysFile, "r");
+		fp = fopen(this->sysFile, "r+");
 		for(int i=0;i<fileNode_in_block;i++){
 			fseek(fp, block_index*block_size+i*sizeof(fileNode), SEEK_SET);
 			fileNode node;
@@ -332,6 +368,29 @@ void file_system::delete_file_node(inode dirNode,char* file_name){
 	return;
 }
 //test
+
+void file_system::catFile(inode file){
+	int block_count=0;
+	while(block_count<dirNode.size){
+		int block_index;
+		if(block_count<10){
+			block_index=dirNode.directBlock[block_count];
+		}else{
+			block_index=get_indirect_block_index(dirNode.indirectBlock,block_count-10);
+		}
+		block_count++;
+
+		fp = fopen(this->sysFile, "r");
+		fseek(fp,block_index*block_size,SEEK_SET);
+		char c;
+		for(int i=0;i<1024;i++){
+			fread(&c,sizeof(char),1,fp);
+			cout<<c;
+		}
+		cout<<endl;
+	}
+
+}
 
 void file_system::test() {
 	cout<<"inode "<<sizeof(inode)<<" "<<sizeof(inodeBitMap)<<"\n";

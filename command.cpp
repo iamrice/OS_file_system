@@ -14,7 +14,7 @@ inode file_system::find_entry(inode dir, string file_name) {
 	list<fileNode> fileList = loadDir(dir);
 	list<fileNode>::iterator it;
 	for (it = fileList.begin(); it != fileList.end(); it++) {
-		if (it->name == file_name)
+		if (it->name == file_name)//$
 		{
 			node = getINode(it->nodeAddr);
 			return node;
@@ -32,18 +32,19 @@ inode file_system::get_path_inode(string pathname) {
 	null_node.addr = 0;
 	regex e1("(/\\w{1,30})+");//判断/dir/file类型
 	regex e2("^.(/\\w{1,30})+");//判断./dir/file类型：即从当前目录开始
-	if (!regex_match(pathname, e1) && !regex_match(pathname, e2)) {
-
-		cout << "Wrong path!" << endl;
-		return null_node;//这里该返回什么？
-	}
-	else if (regex_match(pathname, e2)) {
+	if (regex_match(pathname, e2)) {
 		dir = this->current;
 		pathname.erase(0, 1);
 	}
 	else if (regex_match(pathname, e1)) {
 		dir = getINode((this->sys_node).rootINode);
 	}
+	else{
+
+		cout << "Wrong path!" << endl;
+		return null_node;//这里该返回什么？
+	}
+
 	regex e("\\w{1,30}");//
 	smatch sm;
 	string::const_iterator a = pathname.begin();
@@ -112,37 +113,6 @@ string file_system::get_path(inode file_inode) {//path用string filename用char*
 	return path;
 }
 
-void file_system::copyfile(FILE*to, FILE*from)
-{
-	int c;
-	while ((c = getc(from)) != EOF)
-		putc(c, to);
-}
-
-/*该路径下的目录inode dir，和目录的内容：dirFileNode
-先给文件分配inode 和 block，根据返回值判断是否有空间，
-需要一个fileNode,记录name 和 nodeAddr
-记录该Inode的创建时间：直接time(&create_Time)
-记录bool isDirection;		//1B
-	unsigned short addr;			//2B，记录当前位置
-	unsigned short parentAddr;		//2B
-	unsigned short size;			//2B,单位是block
-	unsigned short indirectBlock = 0;//2B
-	unsigned short directBlock[10] = { 0 };	//20B
-	time_t lastModify;				//8B
-	time_t createTime;
-最后update
-参考
-cout << "inode " << sizeof(inode) << " " << sizeof(inodeBitMap) << " sysnode " << sizeof(sysNode) << "\n";
-	inode a = getINode(0);
-	cout << a.to_string();
-	inode b;
-	b.addr = applyINode();
-	b.parentAddr = a.addr;
-	b.isDirection = false;
-	updateINode(b);
-	cout << b.to_string();
-*/
 void file_system::createFile(string path, int size) {
 	inode dir = get_path_inode_except_name(path);
 	//fileNode dirFileNode;                 
@@ -152,59 +122,32 @@ void file_system::createFile(string path, int size) {
 		std::cout << "There is no space for a new file!" << endl;
 		return;
 	}
-	int block_index;
-	list<int> address_list;
-	while (size--) {
-		block_index = applyBlock();
-		this->sys_node.blockUsed++;
-		if (block_index == 0) {
-			std::cout << "There is no space for a new file!" << endl;
-			releaseINode(new_inode.addr);//释放分配的inode节点
-			list<int>::iterator it;//释放分配的block
-			for (it = address_list.begin(); it != address_list.end(); *it++) {
-				if (*it != 0) {
-					releaseBlock(*it);
-					this->sys_node.blockUsed--;
-				}
-				else return;
-			}
-			return;
-		}
-		else {
-			address_list.push_back(block_index);
+
+	if(size > 74 || size > block_num - this->sys_node.blockUsed){
+		return;
+	}
+
+	int block_count=0;
+	while(block_count<size){
+		int block_index=applyBlock();
+		if(block_count<10){
+			new_inode.directBlock[block_count]=block_index;
+		}else{
+			add_indirect_block_index(new_inode.indirectBlock,block_count-10,block_index);
 		}
 	}
+
 	time(&new_inode.createTime);
 	new_inode.isDirection = false;
 	new_inode.parentAddr = dir.addr;
 	new_inode.size = size;
-	list<int>::iterator it;
-	if (size <= 10) {
-		int i = 0;
-		for (it = address_list.begin(); it != address_list.end(); it++) {
-			new_inode.directBlock[i] = *it;
-			i++;
-			if (i > size) break;
-		}
-	}
-	else {
-		int i = 0;
-		for (it = address_list.begin(); it != address_list.end(); it++) {
-			new_inode.directBlock[i] = *it;
-			i++;
-			if (i > 10) {
-				add_indirect_block_index(new_inode.indirectBlock, i - 10, block_index);//这里可能用错了，indirectBlock只有一个，怎么可以重复赋值呢？
-			}
-
-		}
-		//for (int j = 0; j < new_inode.size - 10;j++) {
-		//	new_inode.indirectBlock = add_indirect_block_index(new_inode.addr, j, block_index);//这里可能用错了，indirectBlock只有一个，怎么可以重复赋值呢？
-		//}
-		updateINode(new_inode);
-		char* fname = get_create_file_name(path);
-		fileNode fnode(new_inode.addr, fname);
-		add_file_node(dir, fnode);
-	}
+	
+	updateINode(new_inode);
+	
+	char* fname = get_create_file_name(path);
+	fileNode fnode(new_inode.addr, fname);
+	add_file_node(dir, fnode);
+	
 }
 
 /*
@@ -393,74 +336,37 @@ void file_system::copy(string origin_path, string copy_path) {
 	new_inode.isDirection = node.isDirection;
 	new_inode.parentAddr = dir.addr;
 	new_inode.size = node.size;//接下来还要添加地址，也就是分配block
-	int block_index;
-	list<int> address_list;
-	while (new_inode.size--) {
-		block_index = applyBlock();
-		this->sys_node.blockUsed++;
-		if (block_index == 0) {//如果空间不够
-			cout << "There is no space for a new file!" << endl;
-			releaseINode(new_inode.addr);//释放分配的inode节点
-			list<int>::iterator it;//释放分配的block
-			for (it = address_list.begin(); it != address_list.end(); it++) {
-				if (*it != 0) {
-					releaseBlock(*it);
-					this->sys_node.blockUsed--;
-				}
-				else return;
-			}
-			return;
-		}
-		else {
-			address_list.push_back(block_index);
-		}
-	}
-	list<int>::iterator it;
-	if (new_inode.size <= 10) {
-		int i = 0;
-		for (it = address_list.begin(); it != address_list.end(); it++) {
-			new_inode.directBlock[i] = *it;
-			i++;
-			if (i > new_inode.size) break;
-		}
-	}
-	else {
-		int i = 0;
-		for (it = address_list.begin(); it != address_list.end(); it++) {
-			new_inode.directBlock[i] = *it;
-			i++;
-			if (i > 10) {
-				add_indirect_block_index(new_inode.indirectBlock, i - 10, block_index);//这里可能用错了，indirectBlock只有一个，怎么可以重复赋值呢？
-			}
-		}
-		//for (int j = 0; j < new_inode.size - 10;j++) {
-		//	new_inode.indirectBlock = add_indirect_block_index(new_inode.addr, j, block_index);//这里可能用错了，indirectBlock只有一个，怎么可以重复赋值呢？
-		//}
-		updateINode(new_inode);
-		char* fname = get_create_file_name(copy_path);
-		fileNode fnode(new_inode.addr, fname);
-		add_file_node(dir, fnode);
-	}
-	int len = 0;
-	FILE *pIn = NULL;
-	FILE *pOut = NULL;
-	char buff[8192] = { 0 };//这里的8192参考的是https://blog.csdn.net/Primeprime/article/details/105515059
-	if ((pIn = fopen(origin_path.c_str(), "r")) == NULL)
-	{
-		printf("Open File %s Failed...\n", origin_path.c_str());
+
+	if(new_inode.size > 74 || new_inode.size > block_num - this->sys_node.blockUsed){
 		return;
 	}
-	if ((pOut = fopen(copy_path.c_str(), "w")) == NULL)
-	{
-		printf("Copy File Failed...\n");
-		return;
+
+	int block_count=0;
+	while(block_count<new_inode.size){
+		int block_index=applyBlock();
+		if(block_count<10){
+			new_inode.directBlock[block_count]=block_index;
+		}else{
+			add_indirect_block_index(new_inode.indirectBlock,block_count-10,block_index);
+		}
 	}
-	while ((len = fread(buff, sizeof(char), sizeof(buff), pIn)) > 0)
-	{
-		fwrite(buff, sizeof(char), len, pOut);
+	
+	updateINode(new_inode);
+	
+	char* fname = get_create_file_name(copy_path);
+	fileNode fnode(new_inode.addr, fname);
+	add_file_node(dir, fnode);
+	
+	block_count=0;
+	while(block_count<new_inode.size){
+		if(block_count<10){
+			copyItem(node.directBlock[block_count] , new_inode.directBlock[block_count]);
+		}else{
+			int src=get_indirect_block_index(node.indirectBlock,block_count-10);
+			int dst=get_indirect_block_index(new_inode.indirectBlock,block_count-10);
+			copyItem(src,dst);
+		}
 	}
-	fclose(pOut);
-	fclose(pIn);
 }
 
 void file_system::sum() {
@@ -471,21 +377,6 @@ void file_system::sum() {
 
 
 void file_system::cat(string path) {
-	regex e1("(/\\w{1,30})+");//判断/dir/file类型
-	regex e2("^.(/\\w{1,30})+");//判断./dir/file类型：即从当前目录开始
-	if (!regex_match(path, e1) && !regex_match(path, e2)) {
-		cout << "Wrong path!" << endl;
-		return;
-	}
-	FILE *fp;
-	if ((fp = fopen(path.c_str(), "r")) == NULL)
-	{
-		printf("cat: can't open file %s\n", path.c_str());
-		return;
-	}
-	else
-	{
-		copyfile(stdout, fp);
-		fclose(fp);
-	}
+	inode file=get_path_inode(path);
+	catFile(file);
 }
