@@ -153,7 +153,7 @@ private:
 	int block_num = 1024 * 16;
 	int block_bitmap_size = 1024 * 2;
 	int inode_in_block = 21;
-	int fileNode_in_block = 64;
+	int fileNode_in_block = 32;
 
 	const char* sysFile;
 	sysNode sys_node;

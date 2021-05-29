@@ -125,6 +125,7 @@ void file_system::writeItem(unsigned short blockId){
 	char c=rand()%94+33;//随机写入
 	for (int i = 0; i < block_size; ++i)
 	{
+		//cout<<offset+i<<" ";
 		fwrite(&c,sizeof(char),1,fp);
 	}
 	fclose(fp);
@@ -263,17 +264,18 @@ list<fileNode> file_system::loadDir(inode *dirNode){
 			block_index=get_indirect_block_index(dirNode->indirectBlock,block_count-10);
 		}
 		block_count++;
-
+		cout<<"block_index: "<<block_index<<endl;
 		fp = fopen(this->sysFile, "r");
+		fileNode node;
+		fseek(fp,block_index*block_size, SEEK_SET);
 		for(int i=0;i<fileNode_in_block;i++){
-			fseek(fp, block_index*block_size+i*sizeof(fileNode), SEEK_SET);
-			fileNode node;
 			fread(&node,sizeof(node),1,fp);
 			if(node.nodeAddr!=0){
 				list.push_back(node);
 			}
 		}
 		fclose(fp);
+		//system("pause");
 	}
 
 	return list;

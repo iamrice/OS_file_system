@@ -232,16 +232,17 @@ b. 释放块空间，删除inode结点，删除父级文件夹中的名称
 void file_system::deleteDir(string path) {
 	inode *dir = get_path_inode(path);//由于这里path是一个地址目录，所以直接用get_path_inode得到目录;
 	if (this->current->addr == dir->addr) {//这里直接用地址来判断是否为同一个Inode
-		cout << "Cannot delete current directory!" << endl;
+		cout << "Cannot Delete current directory!" << endl;
 		return;
 	}
 	//这里判断是否在目录里面，如果path是当前路径的字串，则包含当前目录，不能删除
 	string current_path = get_path(this->current);
 
-	if (current_path.find(path) == 0) {//考虑到重名问题，如果path是current_path从头开始的字串
+	if (current_path.find(path)) {//考虑到重名问题，如果path是current_path从头开始的字串
 		cout << "Cannot delete current directory!" << endl;
 		return;
 	}
+
 	inode *file_inode;
 	list<fileNode> fileList = loadDir(dir);
 	list<fileNode>::iterator it;
@@ -252,7 +253,7 @@ void file_system::deleteDir(string path) {
 		else
 			deleteFile(get_path(file_inode));
 	}
-	inode *father_dir = getINode(dir->parentAddr);//然后释放该inode节点与block，删除父目录里的信息
+
 	int indirect_address;
 	if (dir->size <= 10) {
 		for (int i = 0; i < dir->size; i++) {
@@ -271,6 +272,8 @@ void file_system::deleteDir(string path) {
 			releaseItem(indirect_address);
 		}
 	}
+	
+	inode *father_dir = getINode(dir->parentAddr);//然后释放该inode节点与block，删除父目录里的信息
 	char* name;
 	name = get_name(father_dir, dir);
 	releaseINode(dir->addr);
@@ -282,8 +285,9 @@ void file_system::deleteDir(string path) {
 void file_system::changeDir(string path)
 {
 	inode *dir = get_path_inode(path);//这里的path也是一个目录路径,对于path是否合法的问题交给get_path_inode函数
-	if (dir->addr != 0) {
+	if (dir != nullptr) {
 		this->current = dir;
+		cout<<"change current:\n"<<current->to_string();
 	}
 }
 
@@ -291,7 +295,7 @@ void file_system::listDir() {
 	inode *file_inode;
 	list<fileNode> fileList = loadDir(this->current);
 	list<fileNode>::iterator it;
-	//cout << "current:\n" << current->to_string();
+	cout << "current:\n" << current->to_string();
 	cout << fileList.size() << "\n";
 	for (it = fileList.begin(); it != fileList.end(); it++) {
 		cout << it->name << "\t";
@@ -330,7 +334,6 @@ void file_system::sum() {
 	cout << "Number of used block:\t" << this->sys_node.blockUsed << endl;
 	cout << "Number of unused block:\t" << this->block_num - this->sys_node.blockUsed << endl;
 }
-
 
 void file_system::cat(string path) {
 	inode *file=get_path_inode(path);

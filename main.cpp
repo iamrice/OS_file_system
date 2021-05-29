@@ -13,7 +13,7 @@ int test_unit_3();
 int test_unit_4();
 
 int main(){
-	test_unit_4();
+	main_process();
 }
 
 /**********************
@@ -34,15 +34,18 @@ int test_unit_4(){
 	sys->createDir("./dir1");
 	sys->createFile("./dir1/file1",1);
 	sys->listDir();
-	sys->changeDir("./dir1");
-	sys->listDir();
+
+	//sys->changeDir("./dir1");
+	//sys->listDir();
 	sys->sum();
 
-	sys->deleteDir("./dir1");
+	system("pause");
+
+	//sys->changeDir(".");
+	sys->deleteDir("/dir1");
 	sys->listDir();
 	sys->sum();	
 
-	system("pause");
 	remove("./system");
 }
 
@@ -63,7 +66,6 @@ int test_unit_3(){
 	system("pause");
 	remove("./system");
 }
-
 
 int test_unit_2(){
 	file_system* sys;
