@@ -249,7 +249,7 @@ inode* file_system::getINode(unsigned short addr){
 
 	//cout<<map.to_string();
 	//cout<<"get inode: offset1:"<<offset<<" offset2:"<<offset2<<"\n";
-
+	cout<<"getInode:\n"<<node->to_string();
 	return node;
 }
 
@@ -336,8 +336,8 @@ void file_system::add_file_node(inode* dirNode,fileNode new_node){
 		block_count++;
 
 		fp = fopen(this->sysFile, "r+");
+		fseek(fp, block_index*block_size, SEEK_SET);
 		for(int i=0;i<fileNode_in_block;i++){
-			fseek(fp, block_index*block_size+i*sizeof(fileNode), SEEK_SET);
 			fileNode node;
 			fread(&node,sizeof(node),1,fp);
 			cout<<"try "<<block_index*block_size+i*sizeof(fileNode)<<endl;
