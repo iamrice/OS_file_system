@@ -146,6 +146,7 @@ public:
 	void test();
 	void help();
 
+	std::string currentDir;
 private:
 	int block_size = 1024;
 	int test_size = 1024 * 16;

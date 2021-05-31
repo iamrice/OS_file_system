@@ -16,21 +16,28 @@ file_system::file_system(){
 	if (fp) {
 		fclose(fp);
 		openFileSystem();
+		cout<<"open file system\n";
 	}
 	else {
+		cout<<"create file system\n";
 		createFileSystem();
 	}
 
-	cout <<"root\n"<< current->to_string();
+	//cout <<"root\n"<< current->to_string();
 
 }
 
-file_system::~file_system(){}
+file_system::~file_system(){
+	fp = fopen(this->sysFile, "r+");
+	fseek(fp, 0, SEEK_SET);
+	fwrite(&sys_node, sizeof(sys_node), 1, fp);
+	fclose(fp);
+}
 
 void file_system::createFileSystem(){
 	fp = fopen(this->sysFile, "w");
-	//fseek(fp,this->system_size-1,SEEK_SET);
-	fseek(fp, this->test_size - 1, SEEK_SET);
+	fseek(fp,this->system_size-1,SEEK_SET);
+	//fseek(fp, this->test_size - 1, SEEK_SET);
 	char end=EOF;
 	fwrite(&end,1,1,fp);
 	fclose(fp);
@@ -54,7 +61,7 @@ void file_system::createFileSystem(){
 	root.isDirection = true;
 	root.size = 0;
 	updateINode(&root);
-	//cout<<root.to_string();
+	//cout<<"create\n"<<root.to_string();
 	sys_node.rootINode = 0;
 
 	fp = fopen(this->sysFile, "r+");
@@ -93,24 +100,52 @@ void file_system::setBitMap(unsigned short addr,int offset, bool bit) {
 	fclose(fp);
 }
 
-//unsigned short file_system::getAvaiableBlock(unsigned short addr, ) {}
+unsigned int file_system::applyBlock() {
 
-unsigned int file_system::applyBlock(){
-	int a=sys_node.blockUsed++;
-	return a;
+	fp = fopen(this->sysFile, "r+");
+	int blockAd = this->sys_node.blockBitMap;
+	int blockAdd = 0;
+	int ans = -1;
+	for (int i = 0; i < block_bitmap_size; i++)
+	{
+		blockAdd = blockAd + i;
+		fseek(fp, blockAdd, SEEK_SET);
+		unsigned char n = fgetc(fp);
+		unsigned char temp = 1;
+		for (int j = 7; j >= 0; j--)
+		{
+			if (int(n&(1<<j)) == 0)
+			{
+				ans = (7-j) + 8 * i;
+				goto success;
+			}
+		}
+	}
+
+success:
+	fclose(fp);
+	int i = ans / 8 + this->sys_node.blockBitMap;
+	int j = ans % 8;
+	setBitMap(i, j, 1);
+	this->sys_node.blockUsed++;
+
+	//cout<<"applyBlock:"<<ans<<endl;
+	return ans;
 }
 
 
-void file_system::releaseBlock(unsigned int blockId){
+void file_system::releaseBlock(unsigned int blockId) {
 	int blockAddr = blockId / 8 + this->sys_node.blockBitMap;
 	int offset = blockId % 8;
-	setBitMap(blockAddr, offset , false);
+	setBitMap(blockAddr, offset, false);
+	this->sys_node.blockUsed--;
+
 }
 
-void file_system::releaseItem(unsigned int blockId){
+void file_system::releaseItem(unsigned int blockId) {
 	int offset = blockId * block_size;
 	fp = fopen(this->sysFile, "r+");
-	fseek(fp, offset,SEEK_SET);
+	fseek(fp, offset, SEEK_SET);
 	for (int i = 0; i < block_size; i++)
 	{
 		fputc(0, fp);
@@ -153,19 +188,23 @@ void file_system::copyItem(unsigned short src,unsigned short dst){
 
 unsigned short file_system::applyINode() {
 	int offset = this->sys_node.inodeBitMap;
-	fp = fopen(this->sysFile, "r+");
 	inodeBitMap node;
 	int nodeIndex=0;
 	while (true) {
+		fp = fopen(this->sysFile, "r+");
 		fseek(fp, offset, SEEK_SET);
 		fread(&node, sizeof(node), 1, fp);
+		fclose(fp);
 		if (node.addr == 0) {
 			unsigned short blockIndex = applyBlock();
 			node.addr = blockIndex;
 			memset(node.bitmap, 0, sizeof(node.bitmap));
 			node.bitmap[0] = 128;
+			//cout<<"bitmap "<<offset<<"\n"<<node.to_string();
+			fp = fopen(this->sysFile, "r+");
 			fseek(fp, offset, SEEK_SET);
 			fwrite(&node, sizeof(node), 1, fp);
+			fclose(fp);
 			goto success;
 		}
 		else {
@@ -176,8 +215,10 @@ unsigned short file_system::applyINode() {
 				//cout<<"temp:"<<hex<<int(temp)<<" vs "<<hex<<int(node.bitmap[i])<<"\n";
 				if (temp != node.bitmap[i]) {
 					node.bitmap[i] = temp;
+					fp = fopen(this->sysFile, "r+");
 					fseek(fp, offset, SEEK_SET);
 					fwrite(&node, sizeof(node), 1, fp);
+					fclose(fp);
 					nodeIndex += t;
 					goto success;
 				}				
@@ -187,7 +228,7 @@ unsigned short file_system::applyINode() {
 		nodeIndex += inode_in_block;
 	}
 success:
-	fclose(fp);
+	//system("pause");
 	//cout<<node.to_string();
 	//cout<<"applyINode "<<nodeIndex<<" "<<offset<<endl;
 	return nodeIndex;
@@ -264,7 +305,7 @@ list<fileNode> file_system::loadDir(inode *dirNode){
 			block_index=get_indirect_block_index(dirNode->indirectBlock,block_count-10);
 		}
 		block_count++;
-		cout<<"block_index: "<<block_index<<endl;
+		//cout<<"block_index: "<<block_index<<endl;
 		fp = fopen(this->sysFile, "r");
 		fileNode node;
 		fseek(fp,block_index*block_size, SEEK_SET);
@@ -299,7 +340,9 @@ void file_system::add_file_node(inode* dirNode,fileNode new_node){
 			fseek(fp, block_index*block_size+i*sizeof(fileNode), SEEK_SET);
 			fileNode node;
 			fread(&node,sizeof(node),1,fp);
+			cout<<"try "<<block_index*block_size+i*sizeof(fileNode)<<endl;
 			if(node.nodeAddr==0){
+				cout<<"find "<<block_index*block_size+i*sizeof(fileNode)<<endl;
 				fseek(fp, block_index*block_size+i*sizeof(fileNode), SEEK_SET);
 				fwrite(&new_node,sizeof(new_node),1,fp);
 				fclose(fp);
@@ -385,8 +428,23 @@ void file_system::catFile(inode* file){
 }
 
 void file_system::test() {
+	//cout<<"blockBitMap = "<<sys_node.blockBitMap<<endl;
+	for(int i=0;i<10;i++)
+		applyBlock();
 }
 
 void file_system::help()
 {
+	printf("command: \n\
+    help       ---  show help menu \n\
+    createFile ---  Create a file: createFile fileName fileSize \n\
+    deleteFile ---  Delete a file: deleteFile fileName \n\
+    createDir  ---  Create a directory：createDir directoryPath \n\
+    deleteDir  ---  Delete a directory: deleteDir directoryPath \n\
+    changeDir  ---  Change current working direcotry:changeDir path \n\
+    dir        ---  List all the files and sub-directories under current working directory \n\
+    cp         ---  Copy a file: cp file1 file2 \n\
+    sum        ---  Display the usage of storage space \n\
+    cat        ---  Print out the file contents:cat fileName \n\
+    exit       ---  exit this system \n");
 }

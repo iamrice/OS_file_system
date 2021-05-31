@@ -1,6 +1,6 @@
 
 #include "file_system.h"
-
+#include <iomanip>
 #include <regex>
 using namespace std;
 
@@ -30,7 +30,7 @@ inode* file_system::find_entry(inode* dir, string file_name) {
 inode* file_system::get_path_inode(string pathname) {
 
 	inode *node, *dir, *null_node=nullptr;
-	regex e1("(/\\w{1,30})*");//判断/dir/file类型
+	regex e1("(/\\w{0,30})*");//判断/dir/file类型
 	regex e2("^.(/\\w{1,30})*");//判断./dir/file类型：即从当前目录开始
 	//cout<<pathname<<endl;
 	if (regex_match(pathname, e2)) {
@@ -295,14 +295,37 @@ void file_system::listDir() {
 	inode *file_inode;
 	list<fileNode> fileList = loadDir(this->current);
 	list<fileNode>::iterator it;
-	cout << "current:\n" << current->to_string();
-	cout << fileList.size() << "\n";
+	//cout << "current:\n" << current->to_string();
+	int len=18;
+	cout << fileList.size() << " items\n";
+	cout<<"----------------------------------------------------------\n";
+	cout<<left<<setw(len)<<"name";
+	cout<<left<<setw(len)<<"create";
+	cout<<left<<setw(len)<<"type";
+	cout<<left<<setw(len)<<"size";
+	cout<<"\n";
+	cout<<"----------------------------------------------------------\n";
 	for (it = fileList.begin(); it != fileList.end(); it++) {
-		cout << it->name << "\t";
+		cout <<left<<setw(len)<< it->name;
 		file_inode = getINode(it->nodeAddr);
-		cout<<file_inode->to_string();
+
+		struct tm time1;
+		char s[40];
+		time1 = *localtime(&file_inode->createTime);
+		strftime(s, sizeof(s), "%Y-%m-%d %H:%M", &time1);
+
+		cout<<left<<setw(len)<<s;
+		if(file_inode->isDirection){
+			cout<<left<<setw(len)<<"directory";
+		}else{
+			cout<<left<<setw(len)<<"file";
+		}
+		cout<<left<<setw(len)<<file_inode->size;
+		cout<<"\n";
+		//cout<<file_inode->to_string();
 		//cout << "size: " << file_inode->size << "\t" << "create Time: " << file_inode->createTime << endl;
 	}
+	cout<<"----------------------------------------------------------\n";
 }
 
 /*

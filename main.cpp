@@ -6,14 +6,37 @@ using namespace std;
 
 const char* command[] = { "help","createFile","deleteFile","createDir","deleteDir","changeDir","dir","cp","sum","cat","exit" };
 
-int main_process();
-int test_unit_1();
-int test_unit_2();
-int test_unit_3();
-int test_unit_4();
+void main_process();
+void test_unit_1();
+void test_unit_2();
+void test_unit_3();
+void test_unit_4();
+void test_unit_5();
 
 int main(){
-	main_process();
+	//main_process();
+	test_unit_5();
+}
+
+void test_unit_5()//未通过，时间出错
+{
+	file_system* sys=new file_system();
+	
+	sys->createDir("./dir1");
+	sys->createFile("./file1",3);
+	sys->listDir();
+
+	delete sys;
+
+	sys = new file_system();
+	sys->listDir();
+
+	sys->createDir("./dir2");
+	sys->createFile("./file2",3);
+	sys->listDir();
+
+	system("pause");
+	remove("./system");
 }
 
 /**********************
@@ -27,7 +50,7 @@ int main(){
 6. 删除3中的文件夹
 **********************/
 
-int test_unit_4(){
+void test_unit_4(){
 	file_system* sys;
 
 	sys = new file_system();
@@ -50,7 +73,7 @@ int test_unit_4(){
 }
 
 
-int test_unit_3(){
+void test_unit_3(){
 	file_system* sys;
 
 	sys = new file_system();
@@ -67,7 +90,7 @@ int test_unit_3(){
 	remove("./system");
 }
 
-int test_unit_2(){
+void test_unit_2(){
 	file_system* sys;
 
 	sys = new file_system();
@@ -88,7 +111,7 @@ int test_unit_2(){
 	remove("./system");
 }
 
-int test_unit_1() //已通过
+void test_unit_1() //已通过
 {
 	cout << sizeof(sysNode) << " " << sizeof(inode) << " " << sizeof(fileNode)<<"\n";
 	file_system* sys;
@@ -97,6 +120,7 @@ int test_unit_1() //已通过
 	sys->createFile("./file1", 3);
 	sys->listDir();
 
+	system("pause");
 	delete sys;
 
 	sys = new file_system();
@@ -106,7 +130,7 @@ int test_unit_1() //已通过
 	remove("./system");
 }
 
-int main_process(){
+void main_process(){
 	file_system system;
 
 	char Command[30],name[30];
@@ -117,7 +141,7 @@ int main_process(){
 		printf("FileSystem@fileSystem:");
 		scanf("%s", Command);
 
-		for (int i = 0; i < 10; i++) {
+		for (int i = 0; i <= 10; i++) {
 			if (!strcmp(Command, command[i])) {
 				Com = i;
 				break;
@@ -167,13 +191,13 @@ int main_process(){
 				exit = 1;
 				break;
 			default:
-				exit=1;
+				cout<<"wrong input\n";
 				break;
 		}
 			
 		if (exit) {
-			return 0;
+			break;
 		}
-
+		Com=-1;
 	}
 }		
