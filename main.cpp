@@ -4,8 +4,6 @@
 #include<cstdio>
 using namespace std;
 
-const char* command[] = { "help","createFile","deleteFile","createDir","deleteDir","changeDir","dir","cp","sum","cat","exit" };
-
 void main_process();
 void test_unit_1();
 void test_unit_2();
@@ -151,6 +149,8 @@ void test_unit_1() //已通过
 	remove("./system");
 }
 
+const char* command[] = { "help","createFile","deleteFile","createDir","deleteDir","changeDir","dir","cp","sum","cat","exit","cd","ls"};
+
 void main_process(){
 	file_system system;
 
@@ -162,7 +162,7 @@ void main_process(){
 		printf("FileSystem@fileSystem:");
 		scanf("%s", Command);
 
-		for (int i = 0; i <= 10; i++) {
+		for (int i = 0; i <= 12; i++) {
 			if (!strcmp(Command, command[i])) {
 				Com = i;
 				break;
@@ -190,10 +190,12 @@ void main_process(){
 				system.deleteDir(name);
 				break;
 			case 5:
+			case 11:
 				scanf("%s", name);
 				system.changeDir(name);
 				break;
 			case 6://dir
+			case 12:
 				system.listDir();
 				break;
 			case 7:

@@ -30,16 +30,13 @@ inode* file_system::find_entry(inode* dir, string file_name) {
 inode* file_system::get_path_inode(string pathname) {
 
 	inode *node, *dir, *null_node=nullptr;
-	if (pathname[0]=='.') {
-		dir = this->current;
-		pathname.erase(0, 1);
-	}
-	else if (pathname[0]=='/') {
+	if (pathname[0]=='/') {
 		dir = getINode((this->sys_node).rootINode);
+	}else if(pathname[0]=='.' && pathname[1]=='.'){
+		dir = getINode(this->current->parentAddr);
 	}
 	else{
-		cout << "this is a wrong path!" << endl;
-		return null_node;//这里该返回什么？
+		dir = this->current;
 	}
 
 	//cout<<pathname<<endl;
@@ -283,7 +280,7 @@ void file_system::changeDir(string path)
 	inode *dir = get_path_inode(path);//这里的path也是一个目录路径,对于path是否合法的问题交给get_path_inode函数
 	if (dir != nullptr) {
 		this->current = dir;
-		cout<<"change current:\n"<<current->to_string();
+		//cout<<"change current:\n"<<current->to_string();
 	}
 }
 
@@ -299,8 +296,8 @@ void file_system::listDir() {
 	cout<<left<<setw(len)<<"create";
 	cout<<left<<setw(len)<<"type";
 	cout<<left<<setw(len)<<"size";
-	cout<<left<<setw(len)<<"node-id";
-	cout<<left<<setw(len)<<"block-id";
+	//cout<<left<<setw(len)<<"node-id";
+	//cout<<left<<setw(len)<<"block-id";
 	cout<<"\n";
 	cout<<"----------------------------------------------------------\n";
 	for (it = fileList.begin(); it != fileList.end(); it++) {
@@ -319,8 +316,8 @@ void file_system::listDir() {
 			cout<<left<<setw(len)<<"file";
 		}
 		cout<<left<<setw(len)<<file_inode->size;
-		cout<<left<<setw(len)<<file_inode->addr;
-		cout<<left<<setw(len)<<file_inode->directBlock[0];
+		//cout<<left<<setw(len)<<file_inode->addr;
+		//cout<<left<<setw(len)<<file_inode->directBlock[0];
 		cout<<"\n";
 		//cout<<file_inode->to_string();
 		//cout << "size: " << file_inode->size << "\t" << "create Time: " << file_inode->createTime << endl;
