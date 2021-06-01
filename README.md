@@ -48,7 +48,9 @@ file_system.exe
    2. 第二部分：blockBitMap，系统有1024*16 个block，bitMap 占用 2048B。
    3. 第三部分：inodeBitMap，此部分动态增长，最大可达(1024*16 / 21) \* 6 B，因此预留 4.5 个block。
 
-![](https://z3.ax1x.com/2021/05/24/gxeIDP.png)
+![](https://z3.ax1x.com/2021/06/01/2nxlcT.png)
+
+<div display="none">
 
 ## 待解决的问题
 
@@ -73,7 +75,7 @@ file_system.exe
 - [x] short 只有 2B，不足以表达 inode 的位置，inode 位置包括 block 和 offset，需要 14+5 bit。但这会破坏紧凑的结构
   有一种解决方法：跳转。inode 地址指向它所在的 bitmap，再通过 bitmap 上记录的地址去查找。使用到 inode 地址的只有目录文件。
 
-
+</div>
 
 ## 可优化的内容
 

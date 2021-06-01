@@ -7,7 +7,7 @@
 using namespace std;
 
 file_system::file_system(){
-	cout<<"MiniOS file system 1.0.0"<<endl;
+	cout<<"Elastic storage file system 1.0.0 developed by group \"Chinese 5\" "<<endl;
 	cout<<"Copyright (c) 2021 Taiyou Chen, Zesheng Wei and Ying Qiu. All rights reserved."<<endl;
 	cout<<"Type \"help\" or \"lisence\" for more informations"<<endl;
 	sysFile = "./system";
