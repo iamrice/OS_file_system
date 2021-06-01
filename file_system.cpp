@@ -431,9 +431,7 @@ void file_system::catFile(inode* file){
 }
 
 void file_system::test() {
-	//cout<<"blockBitMap = "<<sys_node.blockBitMap<<endl;
-	for(int i=0;i<10;i++)
-		applyBlock();
+	cout<<sizeof(inodeBitMap);
 }
 
 void file_system::help()

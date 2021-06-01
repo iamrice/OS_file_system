@@ -30,14 +30,11 @@ inode* file_system::find_entry(inode* dir, string file_name) {
 inode* file_system::get_path_inode(string pathname) {
 
 	inode *node, *dir, *null_node=nullptr;
-	regex e1("(/\\w{0,30})*");//判断/dir/file类型
-	regex e2("^.(/\\w{1,30})*");//判断./dir/file类型：即从当前目录开始
-	//cout<<pathname<<endl;
-	if (regex_match(pathname, e2)) {
+	if (pathname[0]=='.') {
 		dir = this->current;
 		pathname.erase(0, 1);
 	}
-	else if (regex_match(pathname, e1)) {
+	else if (pathname[0]=='/') {
 		dir = getINode((this->sys_node).rootINode);
 	}
 	else{
@@ -144,7 +141,9 @@ inode* file_system::createFile(string path, int size) {
 	char name[30];
 	strcpy(name, fname.c_str());
 	fileNode fnode(new_inode->addr, name);
+	cout<<"dir:\n"<<dir->to_string();
 	add_file_node(dir, fnode);
+	cout<<"dir:\n"<<dir->to_string();
 
 
 	//cout << "current: \n" << current->to_string();
@@ -300,6 +299,8 @@ void file_system::listDir() {
 	cout<<left<<setw(len)<<"create";
 	cout<<left<<setw(len)<<"type";
 	cout<<left<<setw(len)<<"size";
+	cout<<left<<setw(len)<<"node-id";
+	cout<<left<<setw(len)<<"block-id";
 	cout<<"\n";
 	cout<<"----------------------------------------------------------\n";
 	for (it = fileList.begin(); it != fileList.end(); it++) {
@@ -318,6 +319,8 @@ void file_system::listDir() {
 			cout<<left<<setw(len)<<"file";
 		}
 		cout<<left<<setw(len)<<file_inode->size;
+		cout<<left<<setw(len)<<file_inode->addr;
+		cout<<left<<setw(len)<<file_inode->directBlock[0];
 		cout<<"\n";
 		//cout<<file_inode->to_string();
 		//cout << "size: " << file_inode->size << "\t" << "create Time: " << file_inode->createTime << endl;

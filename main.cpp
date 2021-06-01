@@ -13,12 +13,17 @@ void test_unit_3();
 void test_unit_4();
 void test_unit_5();
 void test_unit_6();
+void test_unit_7();
 
 int main(){
 	main_process();
-	//test_unit_5();
+	//test_unit_7();
 }
 
+void test_unit_7(){
+	file_system* sys=new file_system();
+	sys->test();
+}
 void test_unit_6()//未通过，时间出错
 {
 	remove("./system");
