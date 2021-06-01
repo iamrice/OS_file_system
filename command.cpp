@@ -89,7 +89,7 @@ char* file_system::get_name(inode* dir, inode* file_inode) {
 	list<fileNode> fileList = loadDir(dir);
 	list<fileNode>::iterator it;
 	for (it = fileList.begin(); it != fileList.end(); it++) {
-		if (file_inode->addr = it->nodeAddr)
+		if (file_inode->addr == it->nodeAddr)
 			return  it->name;
 	}
 }
@@ -153,8 +153,8 @@ inode* file_system::createFile(string path, int size) {
 
 
 	//cout << "current: \n" << current->to_string();
-	cout << "dir: \n" << dir->to_string();
-	cout << "new file: \n" << new_inode->to_string();
+	//cout << "dir: \n" << dir->to_string();
+	//cout << "new file: \n" << new_inode->to_string();
 
 	return new_inode;
 }
@@ -219,8 +219,8 @@ void file_system::createDir(string path) {
 	add_file_node(dir, fnode);
 
 	//cout << "current: \n" << current->to_string();
-	cout << "dir: \n" << dir->to_string();
-	cout << "new dir: \n" << new_inode.to_string();
+	//cout << "dir: \n" << dir->to_string();
+	//cout << "new dir: \n" << new_inode.to_string();
 
 	return;
 }

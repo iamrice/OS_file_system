@@ -14,29 +14,34 @@ void test_unit_4();
 void test_unit_5();
 
 int main(){
-	//main_process();
-	test_unit_5();
+	main_process();
+	//test_unit_5();
 }
 
 void test_unit_5()//未通过，时间出错
 {
+	remove("./system");
+
 	file_system* sys=new file_system();
 	
 	sys->createDir("./dir1");
+	sys->listDir();
 	sys->createFile("./file1",3);
 	sys->listDir();
-
+	sys->createFile("./file2",5);
+	sys->listDir();
+	sys->createDir("./dir1");
+	sys->listDir();
+/*
 	delete sys;
-
 	sys = new file_system();
 	sys->listDir();
 
 	sys->createDir("./dir2");
 	sys->createFile("./file2",3);
 	sys->listDir();
-
-	system("pause");
-	remove("./system");
+*/
+	//system("pause");
 }
 
 /**********************

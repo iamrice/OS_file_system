@@ -16,10 +16,10 @@ file_system::file_system(){
 	if (fp) {
 		fclose(fp);
 		openFileSystem();
-		cout<<"open file system\n";
+		//cout<<"open file system\n";
 	}
 	else {
-		cout<<"create file system\n";
+		//cout<<"create file system\n";
 		createFileSystem();
 	}
 
@@ -114,7 +114,7 @@ unsigned int file_system::applyBlock() {
 		unsigned char temp = 1;
 		for (int j = 7; j >= 0; j--)
 		{
-			if (int(n&(1<<j)) == 0)
+			if ((n&(1<<j)) == 0)
 			{
 				ans = (7-j) + 8 * i;
 				goto success;
@@ -249,7 +249,7 @@ inode* file_system::getINode(unsigned short addr){
 
 	//cout<<map.to_string();
 	//cout<<"get inode: offset1:"<<offset<<" offset2:"<<offset2<<"\n";
-	cout<<"getInode:\n"<<node->to_string();
+	//cout<<"getInode:\n"<<node->to_string();
 	return node;
 }
 
@@ -264,11 +264,12 @@ void file_system::updateINode(inode* node){
 	//cout<<"updateINode "<<map.addr<<" "<<map.bitmap<<" "<<offset2<<endl;
 	fseek(fp, offset2, SEEK_SET);
 	fwrite(node, sizeof((*node)), 1, fp);
+	fclose(fp);
 
+	//cout<<"updateINode:"<<node->addr<<"\n";
 	//cout<<map.to_string();
 	//cout<<"update inode: offset1:"<<offset<<" offset2:"<<offset2<<" "<<sizeof((*node))<<"\n";
 	//cout<<node->to_string();
-	fclose(fp);
 }
 
 void file_system::releaseINode(unsigned short addr){
@@ -340,9 +341,9 @@ void file_system::add_file_node(inode* dirNode,fileNode new_node){
 		for(int i=0;i<fileNode_in_block;i++){
 			fileNode node;
 			fread(&node,sizeof(node),1,fp);
-			cout<<"try "<<block_index*block_size+i*sizeof(fileNode)<<endl;
+			//cout<<"try "<<block_index*block_size+i*sizeof(fileNode)<<endl;
 			if(node.nodeAddr==0){
-				cout<<"find "<<block_index*block_size+i*sizeof(fileNode)<<endl;
+				//cout<<"find "<<block_index*block_size+i*sizeof(fileNode)<<endl;
 				fseek(fp, block_index*block_size+i*sizeof(fileNode), SEEK_SET);
 				fwrite(&new_node,sizeof(new_node),1,fp);
 				fclose(fp);
@@ -385,10 +386,12 @@ void file_system::delete_file_node(inode* dirNode,char* file_name){
 		block_count++;
 
 		fp = fopen(this->sysFile, "r+");
+		//cout<<"find :"<<file_name;
 		for(int i=0;i<fileNode_in_block;i++){
 			fseek(fp, block_index*block_size+i*sizeof(fileNode), SEEK_SET);
 			fileNode node;
 			fread(&node,sizeof(node),1,fp);
+			//cout<<"name:"<<node.name;
 			if(node.nodeAddr!=0 && strcmp(node.name,file_name)==0){
 				node.nodeAddr=0;
 				fseek(fp, block_index*block_size+i*sizeof(fileNode), SEEK_SET);
