@@ -12,13 +12,24 @@ void test_unit_2();
 void test_unit_3();
 void test_unit_4();
 void test_unit_5();
+void test_unit_6();
 
 int main(){
 	main_process();
 	//test_unit_5();
 }
 
-void test_unit_5()//未通过，时间出错
+void test_unit_6()//未通过，时间出错
+{
+	remove("./system");
+
+	file_system* sys=new file_system();
+	sys->createDir("./dir1");
+	sys->listDir();
+	sys->deleteDir("./dir1");
+	sys->listDir();
+}
+void test_unit_5()//已通过
 {
 	remove("./system");
 
@@ -32,7 +43,7 @@ void test_unit_5()//未通过，时间出错
 	sys->listDir();
 	sys->createDir("./dir1");
 	sys->listDir();
-/*
+
 	delete sys;
 	sys = new file_system();
 	sys->listDir();
@@ -40,7 +51,7 @@ void test_unit_5()//未通过，时间出错
 	sys->createDir("./dir2");
 	sys->createFile("./file2",3);
 	sys->listDir();
-*/
+
 	//system("pause");
 }
 

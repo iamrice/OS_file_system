@@ -45,13 +45,13 @@ inode* file_system::get_path_inode(string pathname) {
 		return null_node;//这里该返回什么？
 	}
 
-	cout<<pathname<<endl;
+	//cout<<pathname<<endl;
 	regex e("\\w{1,30}");
 	smatch sm;
 	string::const_iterator a = pathname.begin();
 	string::const_iterator b = pathname.end();
 	while (regex_search(a, b, sm, e)) {
-		cout << sm[0] << endl;
+		//cout << sm[0] << endl;
 		dir = find_entry(dir, sm[0]);
 		if (dir==nullptr ) {//判断
 			cout << "Wrong path!" << endl;
@@ -96,19 +96,14 @@ char* file_system::get_name(inode* dir, inode* file_inode) {
 
 //根据file_inode得到文件/目录的路径
 string file_system::get_path(inode* file_inode) {//path用string filename用char*
-	string path;
-	string s = "/";
-	inode *dir = getINode(file_inode->parentAddr);
 
-	s.append(get_name(dir, file_inode));
-	path.insert(0, s);
+	string path="/";
+	inode *dir = file_inode;
 	while (dir->addr != (this->sys_node).rootINode) {//这里直接用地址来判断是否为同一个Inode
-
 		file_inode = dir;
 		dir = getINode(file_inode->parentAddr);
-		s = "/";
-		s.append(get_name(dir, file_inode));
-		path.insert(0, s);
+		path.insert(0, get_name(dir, file_inode) );
+		path.insert(0,"/");
 	}
 	return path;
 }
@@ -237,9 +232,11 @@ void file_system::deleteDir(string path) {
 	}
 	//这里判断是否在目录里面，如果path是当前路径的字串，则包含当前目录，不能删除
 	string current_path = get_path(this->current);
-
-	if (current_path.find(path)==current_path.npos) {//考虑到重名问题，如果path是current_path从头开始的字串
-		cout << "Cannot delete current directory!" << endl;
+	string delete_path=get_path(dir);
+	cout<<"current_path:"<<current_path<<" \ndelete path:"<<delete_path<<endl;
+	//cout<<current_path.find(delete_path)<<" \nnpos:"<<std::string::npos;
+	if (current_path.find(delete_path) != std::string::npos) {//考虑到重名问题，如果path是current_path从头开始的字串
+		cout << "cannot delete current directory!" << endl;
 		return;
 	}
 
@@ -340,7 +337,7 @@ void file_system::copy(string origin_path, string copy_path) {
 
 	int block_count=0;
 	while(block_count<new_inode->size){
-		cout<<"block_count "<<block_count<<endl;
+		//cout<<"block_count "<<block_count<<endl;
 		if(block_count<10){
 			copyItem(node->directBlock[block_count] , new_inode->directBlock[block_count]);
 		}else{
