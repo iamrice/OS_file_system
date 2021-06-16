@@ -138,9 +138,9 @@ inode* file_system::createFile(string path, int size) {
 	char name[30];
 	strcpy(name, fname.c_str());
 	fileNode fnode(new_inode->addr, name);
-	cout<<"dir:\n"<<dir->to_string();
+	//cout<<"dir:\n"<<dir->to_string();
 	add_file_node(dir, fnode);
-	cout<<"dir:\n"<<dir->to_string();
+	//cout<<"dir:\n"<<dir->to_string();
 
 
 	//cout << "current: \n" << current->to_string();

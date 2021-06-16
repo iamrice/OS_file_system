@@ -4,6 +4,8 @@
 *.txt
 *.pdf
 
+*.zip
+
 #directory
 Project1/
 .idea/

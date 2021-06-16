@@ -440,7 +440,7 @@ void file_system::help()
     help       ---  show help menu \n\
     createFile ---  Create a file: createFile fileName fileSize \n\
     deleteFile ---  Delete a file: deleteFile fileName \n\
-    createDir  ---  Create a directory：createDir directoryPath \n\
+    createDir  ---  Create a directory: createDir directoryPath \n\
     deleteDir  ---  Delete a directory: deleteDir directoryPath \n\
     changeDir  ---  Change current working direcotry:changeDir path \n\
     dir        ---  List all the files and sub-directories under current working directory \n\
